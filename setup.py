@@ -54,6 +54,5 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Development Status :: 3 - Alpha',
     ],
-
 )
 
