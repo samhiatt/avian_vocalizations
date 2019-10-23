@@ -38,3 +38,13 @@ def test_get_melsg_array(data_frames, scalers):
     print(melsg.mean())
     assert np.abs(melsg_scaler.mean_ - melsg.mean()) < np.abs(melsg_scaler.scale_),\
         "melsg.mean() should be within one standard deviation of the dataset mean pixel."
+    
+def test_get_mfcc_array(data_frames, scalers):
+    index_df, _, _, _ = data_frames
+    _, _, mfcc_scaler = scalers
+    file_id = index_df.head(1).index[0]
+    mfcc = data.get_mfcc_array(index_df, file_id)
+    assert mfcc.shape[0]==20, "Should be 20 px tall."
+    print(mfcc.mean())
+    assert np.abs(mfcc_scaler.mean_ - mfcc.mean()) < np.abs(mfcc_scaler.scale_),\
+        "mfcc.mean() should be within one standard deviation of the dataset mean pixel."
