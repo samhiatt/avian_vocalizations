@@ -1,1 +1,5 @@
+!.gitignore
+.*
 data/
+*.zip
+__pycache__

@@ -1,0 +1,12 @@
+keras==2.2.4
+tensorflow==1.14.0
+librosa==0.6.3
+numpy==1.16.3
+pandas==0.23.4
+tqdm==4.31.1
+requests==2.21
+wget==3.2
+hyperopt==0.1.2
+paramiko==2.6.0
+git+https://github.com/samhiatt/toolbench.git
+git+https://github.com/samhiatt/vast-python.git
