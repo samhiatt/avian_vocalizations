@@ -5,6 +5,8 @@ verify_ssl = true
 
 [dev-packages]
 ipykernel = "*"
+pdoc3 = "*"
+pytest = "*"
 
 [packages]
 keras = "==2.2.4"

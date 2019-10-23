@@ -116,7 +116,7 @@ def _parse_shape(shape_str):
        Convenience funtion to parse out the values. """
     if type(shape_str) is pd.Series:
         return shape_str.map(_parse_shape)
-    a,b = re.search('\((\d+), (\d+)\)',shape_str).groups()
+    a,b = re.search(r'\((\d+), (\d+)\)',shape_str).groups()
     return int(a), int(b)
         
 def _download_and_extract(url, data_dir, keep_zip=False):
