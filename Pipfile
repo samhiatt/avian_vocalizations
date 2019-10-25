@@ -9,11 +9,11 @@ pdoc3 = "*"
 pytest = "*"
 pyfakefs = "*"
 requests_mock = "*"
-pymongo = "*"
-hyperopt = "*"
 paramiko = "*"
 
 [packages]
+pymongo = "*"
+hyperopt = "*"
 keras = "==2.2.4"
 tensorflow = "==1.14.0"
 librosa = "*"

@@ -36,7 +36,7 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         self.n_frames = n_frames
         self.batch_size = batch_size
         self.n_batches = np.ceil(len(list_file_ids)/batch_size)
-        self.n_classes = n_classes if n_classes else labels.max()-labels.min()+1
+        self.n_classes = n_classes if n_classes else max(labels)-min(labels)+1
         self.labels_by_id = {list_file_ids[i]:l for i,l in enumerate(labels)}
         self.list_file_ids = list_file_ids
         self.n_channels = n_channels
@@ -195,11 +195,11 @@ def get_melsg_array(df, file_id):
     return np.memmap(rec.get('melspectrogram_path'), dtype='float32', mode='readonly', 
                      shape=(128,rec.get('n_frames')))
 
-def _download_data(data_dir='data'):
+def _download_data(data_dir='data', keep_zip=False):
     if not os.path.exists(data_dir):
         print("Creating data dir "+os.path.abspath(data_dir))
         os.mkdir(data_dir)
-    for url in data_urls: _download_and_extract(url, data_dir)
+    for url in data_urls: _download_and_extract(url, data_dir, keep_zip=keep_zip)
     # These files should have been included in the zip archives extracted above.
     zip_file_destinations = {
         "xeno-canto-ca-nv.zip": "audio",

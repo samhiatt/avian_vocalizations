@@ -3,7 +3,7 @@ from avian_vocalizations import data
 from collections import namedtuple
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import LabelEncoder
-from keras.callbacks import ModelCheckpoint
+# from keras.callbacks import ModelCheckpoint
 from hyperopt.fmin import fmin_pass_expr_memo_ctrl
 from hyperopt import STATUS_OK
 from hyperopt import pyll, STATUS_OK, STATUS_RUNNING
@@ -19,16 +19,17 @@ ParamSpace = namedtuple("ParamSpace",['n_frames','dropout_rate','batch_size'])
 
 def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
     
-    index_df, shapes_df, train_df, test_df = data.load_data(data_dir)
-    
-    label_encoder = LabelEncoder().fit(index_df['english_cname'] )
-    n_classes = len(label_encoder.classes_)
-    
-    X_train = index_df.loc[index_df['test']==False].index.values
-    y_train = label_encoder.transform(index_df.loc[index_df['test']==False,"english_cname"].values)
-    
     @fmin_pass_expr_memo_ctrl
     def ModelEvaluator(expr, memo, ctrl):
+    
+        index_df, shapes_df, train_df, test_df = data.load_data(data_dir)
+
+        label_encoder = LabelEncoder().fit(index_df['english_cname'] )
+        n_classes = len(label_encoder.classes_)
+
+        X_train = index_df.loc[index_df['test']==False].index.values
+        y_train = label_encoder.transform(index_df.loc[index_df['test']==False,"english_cname"].values)
+
     #     hyperparams = ParamSpace(**hyperparams)
         pyll_rval = pyll.rec_eval(
             expr,
@@ -55,14 +56,14 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
         scores = []
         for cv_train_index, cv_val_index in sss.split(X_train, y_train):
             print("Split %i/%i"%(len(scores)+1, n_splits))
-            training_generator = AudioFeatureGenerator(
+            training_generator = data.AudioFeatureGenerator(
                 [X_train[i] for i in cv_train_index], 
                 [y_train[i] for i in cv_train_index], 
-                batch_size=hp.batch_size, shuffle=True, seed=37, **params)
-            validation_generator = AudioFeatureGenerator(
+                batch_size=hp.batch_size, shuffle=True, seed=37 )
+            validation_generator = data.AudioFeatureGenerator(
                 [X_train[i] for i in cv_val_index], 
                 [y_train[i] for i in cv_val_index], 
-                batch_size=hp.batch_size, **params)
+                batch_size=hp.batch_size )
 
 #             partial_filename = "cnn.split%02i"%len(scores)
 #             checkpointer = ModelCheckpoint(verbose=1, save_best_only=True,
