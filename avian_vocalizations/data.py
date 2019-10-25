@@ -3,6 +3,8 @@ from zipfile import ZipFile
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+import keras
+from keras.utils import to_categorical
 
 data_urls=[
     "https://xeno-canto-ca-nv.s3.amazonaws.com/avian-vocalizations-partitioned-data.zip",
@@ -10,6 +12,104 @@ data_urls=[
     "https://xeno-canto-ca-nv.s3.amazonaws.com/avian-vocalizations-spectrograms-and-mfccs.zip",
 ]
 train_index_filename = 'train_file_ids.csv'
+
+
+# https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
+class AudioFeatureGenerator(keras.utils.Sequence):
+    'Generates data for Keras'
+    def __init__(self, list_file_ids, labels, batch_size, n_frames=128, n_channels=1, 
+                 data_dir='data', shuffle=False, seed=None, n_classes=None, verbose=False):
+        """ Initialize a data generator with the list of labeled `file_id`s.
+        Args
+            list_file_ids (list[int]): A list of `file_id`s to be included in this generator.
+            labels (list[int]): A list of integer-based labels corresponding to `list_file_ids`.
+            batch_size (int): Number of samples per batch.
+            n_frames (int): Number of audio frames per sample (sample length). (default: 128)
+            n_channels (int): Number of channels. (for compatibility with image generators) (default: 1)
+            data_dir (str): Path to directory containing data downloaded from `_download_data`.
+            shuffle (bool): Whether or not to shuffle the data index between batches.
+            seed (int): Seed for `numpy.random.RandomState`.
+            n_classes (int): Number of classes (distinct labels) in dataset. (default: `labels.max()-labels.min()+1`)
+            verbose (bool): Print to stdout after generating each batch. (default: False)
+        """
+        print("Initializing AudioFeatureGenerator")
+        self.n_frames = n_frames
+        self.batch_size = batch_size
+        self.n_batches = np.ceil(len(list_file_ids)/batch_size)
+        self.n_classes = n_classes if n_classes else labels.max()-labels.min()+1
+        self.labels_by_id = {list_file_ids[i]:l for i,l in enumerate(labels)}
+        self.list_file_ids = list_file_ids
+        self.n_channels = n_channels
+        self.shuffle = shuffle
+        self.seed = seed
+        self.verbose = verbose
+        self.on_epoch_end()
+        
+        self.index_df, self.shapes_df, self.train_df, self.test_df = load_data(data_dir)
+        self.melsg_scaler, self.melsg_log_scaler, self.mfcc_scaler = \
+                                        get_scalers(self.index_df.loc[self.train_df.index])
+
+    def __len__(self):
+        'Denotes the number of batches per epoch'
+        return int(np.floor(len(self.list_file_ids) / self.batch_size))
+
+    def __getitem__(self, index):
+        'Generate one batch of data'
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        list_file_ids_temp = [self.list_file_ids[k] for k in indexes]
+        X, y = self.__data_generation(list_file_ids_temp, index)
+        return X, y
+
+    def on_epoch_end(self):
+        'Update indexes, to be called after each epoch'
+        self.indexes = np.arange(len(self.list_file_ids))
+        if self.shuffle == True:
+            np.random.seed(self.seed)
+            self.seed = self.seed+1 # increment the seed so we get a different batch.
+            np.random.shuffle(self.indexes)
+
+    def __data_generation(self, list_file_ids_temp, batch_index):
+        'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
+        melsg_arr = np.empty((self.batch_size, 128, self.n_frames, self.n_channels))
+        mfcc_arr = np.empty((self.batch_size, 20, self.n_frames, self.n_channels))
+        #X = np.empty((self.batch_size, 128+20, self.n_frames, self.n_channels))
+        y = np.empty((self.batch_size, self.n_classes), dtype=int) # one-hot encoded labels
+        offsets = np.empty(self.batch_size)
+
+        for i, file_id in enumerate(list_file_ids_temp):
+            melsg = get_melsg_array(self.index_df, file_id)
+            melsg_lognorm = self.melsg_log_scaler.transform(np.where(melsg==0,0,np.log(melsg)))
+        
+            mfcc = get_mfcc_array(self.index_df, file_id)
+            mfcc = self.mfcc_scaler.transform(mfcc)
+            
+            # Pick a random window from the sound file
+            d_len = mfcc.shape[1] - self.n_frames
+            if d_len<0: # Clip is shorter than window, so pad with mean value.
+                n = int(np.random.uniform(0, -d_len))
+                pad_range = (n, -d_len-n) # pad with n values on the left, clip_length - n values on the right 
+#                 melsg_cropped = np.pad(melsg, ((0,0), pad_range), 'constant', constant_values=melsg.mean())
+                melsg_lognorm_cropped = np.pad(melsg_lognorm, ((0,0), pad_range), 'constant', constant_values=0)
+                mfcc_cropped = np.pad(mfcc, ((0,0), pad_range), 'constant', constant_values=0)
+            else: # Clip is longer than window, so slice it up
+                n = int(np.random.uniform(0, d_len))
+#                 melsg_cropped = melsg[:, n:(n+self.n_frames)]
+                melsg_lognorm_cropped = melsg_lognorm[:, n:(n+self.n_frames)]
+                mfcc_cropped = mfcc[:, n:(n+self.n_frames)]
+            offsets[i,] = n
+            melsg_arr[i,] = melsg_lognorm_cropped.reshape(1,128,self.n_frames,1)
+            mfcc_arr[i,] = mfcc_cropped.reshape(1,20,self.n_frames,1)
+            y[i,] = to_categorical(self.labels_by_id[file_id], num_classes=self.n_classes)
+
+#         print("Generated batch with input shapes ",(melsg_arr.shape, mfcc_arr.shape))
+        if self.verbose:
+            print("Generated batch #%i/%i."%(batch_index+1,self.n_batches))
+            sys.stdout.flush()
+        return {'melsg':melsg_arr, 
+                'mfcc':mfcc_arr, 
+                'id':list_file_ids_temp,
+                'offset':offsets,
+               }, y
 
 class DataDirNotFound(Exception):
     """ Raised when data dir is not found. Suggests downloading by calling `load_data(download_data=True)`.
@@ -137,7 +237,7 @@ def _download_and_extract(url, data_dir, keep_zip=False):
         for file in archive.infolist():
             archive.extract(file, data_dir)
             print("Extracted %s."%(os.path.abspath(os.path.join(data_dir,file.filename))))
-    if not keep_zip: os.remove(xc_index_zip_filename)
+    if not keep_zip: os.remove(filename)
 
 # def log_clipped(a):
 #     """Convenience function to clip the input to positive values then return the log.""" 

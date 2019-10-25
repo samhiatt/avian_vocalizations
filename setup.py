@@ -29,9 +29,9 @@ setup(
     #package_dir={
     #    '': 'src',
     #},
-    #entry_points = {
-    #    'console_scripts':['foobar=avian_vocalizations.foobar:main'],
-    #},
+    entry_points = {
+       'console_scripts':['download_data=avian_vocalizations.data:_download_data'],
+    },
     #install_requires = [ ],
     tests_require = test_deps,
     extras_require = {

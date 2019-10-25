@@ -9,6 +9,9 @@ pdoc3 = "*"
 pytest = "*"
 pyfakefs = "*"
 requests_mock = "*"
+pymongo = "*"
+hyperopt = "*"
+paramiko = "*"
 
 [packages]
 keras = "==2.2.4"
@@ -19,8 +22,8 @@ pandas = "*"
 tqdm = "*"
 requests = "*"
 wget = "*"
-hyperopt = "*"
-paramiko = "*"
+toolbench = {editable = true,git = "https://github.com/samhiatt/toolbench.git"}
+matplotlib = "*"
 
 [requires]
 python_version = "3.6"
