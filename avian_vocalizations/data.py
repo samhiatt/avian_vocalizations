@@ -203,8 +203,8 @@ def _download_data(data_dir='data', keep_zip=False):
     # These files should have been included in the zip archives extracted above.
     zip_file_destinations = {
         "xeno-canto-ca-nv.zip": "audio",
-        "melspectrograms.zip": "features",
-        "mfccs.zip": "features",
+        "melspectrograms.zip": "",
+        "mfccs.zip": "",
     }
     for zip_filename in zip_file_destinations:
         zip_filepath=os.path.join(data_dir, zip_filename)
@@ -258,7 +258,8 @@ def get_scalers(index_df, data_dir='data', recalc=False):
             print("\rReading melsg %i/%i (%.1f%%)"%(i+1,len(index_df),100*(i+1)/len(index_df)), end="")
             melsg = get_melsg_array(index_df, file_id).flatten()
             melsg_scaler.partial_fit(melsg.reshape(-1,1))
-            melsg_log_scaler = melsg_log_scaler.partial_fit(log_clipped(melsg).reshape(-1,1))
+            melsg_log_scaler = melsg_log_scaler.partial_fit(
+                                    np.where(melsg==0,0,np.log(melsg)).reshape(-1,1))
 
         for i, file_id in enumerate(index_df.index):
             print("\rReading mfcc %i/%i (%.1f%%)"%(i+1,len(index_df),100*(i+1)/len(index_df)), end="")

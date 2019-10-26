@@ -8,11 +8,11 @@ from hyperopt.fmin import fmin_pass_expr_memo_ctrl
 from hyperopt import STATUS_OK
 from hyperopt import pyll, STATUS_OK, STATUS_RUNNING
 from io import StringIO
+import numpy as np
+import json
 
 import warnings; warnings.simplefilter('ignore')
 import os
-
-os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 ParamSpace = namedtuple("ParamSpace",['n_frames','dropout_rate','batch_size'])
 
@@ -21,7 +21,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
     
     @fmin_pass_expr_memo_ctrl
     def ModelEvaluator(expr, memo, ctrl):
-    
+        os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
         index_df, shapes_df, train_df, test_df = data.load_data(data_dir)
 
         label_encoder = LabelEncoder().fit(index_df['english_cname'] )
@@ -46,7 +46,6 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
         
         out=StringIO(newline='\n')
         model.summary(print_fn=lambda x: out.write(x+'\n'))
-        #ctrl.attachments['summary']=out.getvalue()
         ctrl.checkpoint({'status':STATUS_RUNNING, 
                          'attachments':{
                              'model_summary':out.getvalue(),
@@ -65,35 +64,28 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
                 [y_train[i] for i in cv_val_index], 
                 batch_size=hp.batch_size )
 
-#             partial_filename = "cnn.split%02i"%len(scores)
-#             checkpointer = ModelCheckpoint(verbose=1, save_best_only=True,
-#                            filepath=os.path.join(output_dir,'weights.best.%s.hdf5'%partial_filename))
-#             if not os.path.exists(output_dir): os.mkdir(output_dir)
-
             model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-            learning = model.fit_generator(
+            result = model.fit_generator(
                         training_generator, 
                         validation_data=validation_generator,
                         epochs=n_epochs, 
                         steps_per_epoch=training_generator.n_batches,
                         validation_steps=validation_generator.n_batches,
-                        callbacks=[checkpointer], 
+#                         callbacks=[checkpointer], 
                         #use_multiprocessing=True, workers=4,
                         verbose=0, )
-#             history_output_file = os.path.join(output_dir,'training_history_split%i.csv'%len(scores))
-#             pd.DataFrame(learning.history).to_csv(history_output_file, index_label='epoch')
-        #     vis_learning_curve(learning)
-        #     plt.savefig("learning_curve.%s.png"%partial_filename)
-        #     plt.show()
-            acc_at_min_loss = learning.history['val_acc'][np.argmin(learning.history['val_loss'])]
+            acc_at_min_loss = result.history['val_acc'][np.argmin(result.history['val_loss'])]
             # Scores are tuples of ( min_loss, acc_at_min_loss, argmin(min_loss) )
-            scores.append((np.min(learning.history['val_loss']),
+            scores.append((np.min(result.history['val_loss']),
                            acc_at_min_loss,
-                           np.argmin(learning.history['val_loss']),
+                           np.argmin(result.history['val_loss']),
                           ))
             print("Split %i: min loss: %.5f, accuracy at min loss: %.5f"%(
-                len(scores), scores[-1][2], acc_at_min_loss ))
-        print("Cross Validation Accuracy: mean(val_acc[argmin(val_loss)]): %.4f"%(np.mean(scores)))
+                len(scores), np.min(result.history['val_loss']), acc_at_min_loss ))
+        mean_loss = np.mean([score[0] for score in scores])
+        mean_acc = np.mean([score[1] for score in scores])
+        print("Cross Validation Accuracy: mean(val_acc[argmin(val_loss)]): %.4f, mean loss: %.4f"%(
+                mean_acc, mean_loss))
             
         return {'status':STATUS_OK,
                 'loss': result.history['val_loss'][np.argmin(result.history['val_loss'])],
