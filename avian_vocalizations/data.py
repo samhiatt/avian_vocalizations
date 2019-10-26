@@ -32,7 +32,6 @@ class AudioFeatureGenerator(keras.utils.Sequence):
             n_classes (int): Number of classes (distinct labels) in dataset. (default: `labels.max()-labels.min()+1`)
             verbose (bool): Print to stdout after generating each batch. (default: False)
         """
-        print("Initializing AudioFeatureGenerator")
         self.n_frames = n_frames
         self.batch_size = batch_size
         self.n_batches = np.ceil(len(list_file_ids)/batch_size)
@@ -273,10 +272,10 @@ def get_scalers(index_df, data_dir='data', recalc=False):
             write_scaler_params("melsg",melsg_scaler)
             write_scaler_params("melsg_log",melsg_log_scaler)
             write_scaler_params("mfcc",mfcc_scaler)
-        print("\nMean pixel data saved to %s."%scaler_params)
+        #print("\nMean pixel data saved to %s."%scaler_params)
 
     else: # Load cached scaler params
-        print("Loading scaler params from %s."%scaler_params)
+        #print("Loading scaler params from %s."%scaler_params)
         scalers_df = pd.read_csv(scaler_params, index_col=0)
         def load_scaler_params(name, scaler):
             scaler.n_samples_seen_ = scalers_df.loc[name, 'total_pixels']
