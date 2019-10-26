@@ -77,7 +77,7 @@ class AudioFeatureGenerator(keras.utils.Sequence):
 
         for i, file_id in enumerate(list_file_ids_temp):
             melsg = get_melsg_array(self.index_df, file_id)
-            melsg_lognorm = self.melsg_log_scaler.transform(np.log(melsg, where=melsg>0 ))
+            melsg_lognorm = self.melsg_log_scaler.transform(np.log(melsg, out=np.zeros(melsg.shape), where=melsg>0 ))
         
             mfcc = get_mfcc_array(self.index_df, file_id)
             mfcc = self.mfcc_scaler.transform(mfcc)
@@ -258,7 +258,9 @@ def get_scalers(index_df, data_dir='data', recalc=False):
             #print("\rReading melsg %i/%i (%.1f%%)"%(i+1,len(index_df),100*(i+1)/len(index_df)), end="")
             melsg = get_melsg_array(index_df, file_id).flatten()
             melsg_scaler.partial_fit(melsg.reshape(-1,1))
-            melsg_log_scaler = melsg_log_scaler.partial_fit(np.log(melsg, where=melsg>0 ).reshape(-1,1))
+            melsg_log_scaler = melsg_log_scaler.partial_fit(np.log(melsg, 
+                                                                   out=np.zeros(melsg.shape), 
+                                                                   where=melsg>0 ).reshape(-1,1))
 
         for i, file_id in enumerate(index_df.index):
             #print("\rReading mfcc %i/%i (%.1f%%)"%(i+1,len(index_df),100*(i+1)/len(index_df)), end="")
