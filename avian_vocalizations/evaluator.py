@@ -9,7 +9,7 @@ from hyperopt import STATUS_OK
 from hyperopt import pyll, STATUS_OK, STATUS_RUNNING
 from io import StringIO
 import numpy as np
-import json
+import pickle
 import time
 
 import warnings; warnings.simplefilter('ignore', FutureWarning)
@@ -54,6 +54,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
         
         sss = StratifiedShuffleSplit(n_splits=n_splits, test_size=1/4, random_state=37)
         scores = []
+        histories = []
         t0 = time.time()
         for cv_train_index, cv_val_index in sss.split(X_train, y_train):
             print("Split %i/%i"%(len(scores)+1, n_splits))
@@ -79,10 +80,11 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
                         verbose=0, )
             min_loss = np.min(result.history['val_loss'])
             argmin_loss = np.argmin(result.history['val_loss'])
-            acc_at_min_loss = result.history['val_acc'][argmin_loss]
+            acc_at_min_loss = result.history['val_accuracy'][argmin_loss]
             # Scores are tuples of ( min_loss, acc_at_min_loss, argmin(min_loss) )
             score = Scores(min_loss, acc_at_min_loss, argmin_loss)
             scores.append(score)
+            histories.append(result.history)
             print("Split %i: min loss: %.5f, accuracy at min loss: %.5f, min loss at epoch %i"%(
                 len(scores), score.loss, score.accuracy, score.argmin_loss ))
         mean_loss = np.mean([score.loss for score in scores])
@@ -98,7 +100,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
                 'accuracy': mean_acc,
                 'accuracy_variance': var_acc,
                 'attachments':{
-                    'history': json.dumps(result.history).encode('utf-8'),
+                    'history': pickle.dumps(histories),
                     },
                 'scores':[dict(score._asdict()) for score in scores],
                 'trial_time_s': int(time.time()-t0),
