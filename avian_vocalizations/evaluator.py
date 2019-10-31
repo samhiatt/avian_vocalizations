@@ -81,7 +81,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
             argmin_loss = np.argmin(result.history['val_loss'])
             acc_at_min_loss = result.history['val_acc'][argmin_loss]
             # Scores are tuples of ( min_loss, acc_at_min_loss, argmin(min_loss) )
-            score = Scores(min_loss, acc_at_min_loss, argmin_loss, train_time )
+            score = Scores(min_loss, acc_at_min_loss, argmin_loss)
             scores.append(score)
             print("Split %i: min loss: %.5f, accuracy at min loss: %.5f, min loss at epoch %i"%(
                 len(scores), score.loss, score.accuracy, score.argmin_loss ))
