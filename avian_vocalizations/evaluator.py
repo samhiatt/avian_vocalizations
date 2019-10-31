@@ -10,6 +10,7 @@ from hyperopt import pyll, STATUS_OK, STATUS_RUNNING
 from io import StringIO
 import numpy as np
 import json
+import time
 
 import warnings; warnings.simplefilter('ignore', FutureWarning)
 
@@ -39,7 +40,6 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
             expr,
             memo=memo,
             print_node_on_error=True)
-        #print("pyll_rval", pyll_rval)
         hp = ParamSpace(*pyll_rval)
         print("Running training trial with %i splits, %i epochs, with hyperparams: %s"%(
                 n_splits, n_epochs, hp))
@@ -54,6 +54,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
         
         sss = StratifiedShuffleSplit(n_splits=n_splits, test_size=1/4, random_state=37)
         scores = []
+        t0 = time.time()
         for cv_train_index, cv_val_index in sss.split(X_train, y_train):
             print("Split %i/%i"%(len(scores)+1, n_splits))
             training_generator = data.AudioFeatureGenerator(
@@ -80,7 +81,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
             argmin_loss = np.argmin(result.history['val_loss'])
             acc_at_min_loss = result.history['val_acc'][argmin_loss]
             # Scores are tuples of ( min_loss, acc_at_min_loss, argmin(min_loss) )
-            score = Scores(min_loss, acc_at_min_loss, argmin_loss )
+            score = Scores(min_loss, acc_at_min_loss, argmin_loss, train_time )
             scores.append(score)
             print("Split %i: min loss: %.5f, accuracy at min loss: %.5f, min loss at epoch %i"%(
                 len(scores), score.loss, score.accuracy, score.argmin_loss ))
@@ -100,6 +101,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
                     'history': json.dumps(result.history).encode('utf-8'),
                     },
                 'scores':[dict(score._asdict()) for score in scores],
+                'trial_time_s': int(time.time()-t0),
                 }
 
     return ModelEvaluator
