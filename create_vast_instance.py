@@ -31,25 +31,31 @@ def main(args):
     attrs = ['id','dph_total','gpu_name','inet_up','inet_down']
     line_format = "%10s  %-10s %15s %10s %10s"
     
-    filtered_offers = filter_offers(vast, args)
-    print(line_format%(*attrs,))
-    for offer in filtered_offers:
-        print(line_format%(*[offer[a] for a in attrs],))
+    def _get_filtered_offers():
+        filtered_offers = filter_offers(vast, args)
+        print(line_format%(*attrs,))
+        for offer in filtered_offers:
+            print(line_format%(*[offer[a] for a in attrs],))
+        return filtered_offers
         
-    if args.first_offer:
-        offer = filtered_offers[0]
+    if args.offer_id:
+        offer_id = args.offer_id
+    elif args.first_offer:
+        offer_id = _get_filtered_offers()[0]['id']
     else:
+        filtered_offers = _get_filtered_offers()
         answer = input("Which offer? (default %s) "%filtered_offers[0]['id']).strip()
         if answer == '':
-            offer = filtered_offers[0]
+            offer_id = filtered_offers[0]['id']
         else:
-            offers = list(filter(lambda x: str(x['id'])==answer, filtered_offers))
-            if len(offers)<1:
-                print("Offer %s not found."%answer)
-                sys.exit(1)
-            offer = offers[0]
-    print("Creating instance from offer %s"%offer['id'])
-    create_instance(vast, offer['id'], storage=args.storage)
+            #offers = list(filter(lambda x: str(x['id'])==answer, filtered_offers))
+            #if len(offers)<1:
+            #    print("Offer %s not found."%answer)
+            #    sys.exit(1)
+            #offer_id = offers[0]['id']
+            offer_id = int(answer)
+    print("Creating instance from offer %s"%offer_id)
+    create_instance(vast, offer_id, storage=args.storage)
 
 if __name__=='__main__':
     parser = ArgumentParser(description="Create a new vast.ai instance.")

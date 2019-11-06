@@ -6,6 +6,8 @@ from sklearn.preprocessing import StandardScaler
 import keras
 from keras.utils import to_categorical
 
+import warnings; warnings.simplefilter('ignore', FutureWarning)
+
 data_urls=[
     "https://xeno-canto-ca-nv.s3.amazonaws.com/avian-vocalizations-partitioned-data.zip",
     "https://xeno-canto-ca-nv.s3.amazonaws.com/xenocanto-avian-vocalizations-canv-usa.zip",
@@ -194,7 +196,7 @@ def get_melsg_array(df, file_id):
     return np.memmap(rec.get('melspectrogram_path'), dtype='float32', mode='readonly', 
                      shape=(128,rec.get('n_frames')))
 
-def _download_data(data_dir='data', keep_zip=False):
+def _download_data(data_dir='data', keep_zip=True):
     if not os.path.exists(data_dir):
         print("Creating data dir "+os.path.abspath(data_dir))
         os.mkdir(data_dir)

@@ -20,7 +20,7 @@ def find_version(*file_paths):
 test_deps = [ 'pytest==5.2.1', ]
 
 with open("README.md") as f:
-  long_description = f.read()
+    long_description = f.read()
 
 setup(
     name = "avian_vocalizations",
@@ -30,9 +30,34 @@ setup(
     #    '': 'src',
     #},
     entry_points = {
-       'console_scripts':['download_data=avian_vocalizations.data:_download_data'],
+       'console_scripts':[
+           'download_data=avian_vocalizations.data:_download_data',
+           'running_instances=avian_vocalizations.vast:show_running_instances',
+           'run_install_script=avian_vocalizations.vast:run_install_script',
+           'monitor_install_script=avian_vocalizations.vast:monitor_install_script',
+           'monitor_hyperopt_worker=avian_vocalizations.vast:monitor_hyperopt_worker',
+           'start_remote_hyperopt_worker=avian_vocalizations.vast:start_remote_hyperopt_worker',
+       ],
     },
-    #install_requires = [ ],
+    dependency_links = [
+        'git+https://github.com/samhiatt/toolbench/tarball/master#egg=toolbench',
+        'git+https://github.com/hyperopt/hyperopt/tarball/master#egg=hyperopt',
+    ],
+    install_requires = [ 
+        'tensorflow>=1.15,<2',
+        'keras',
+        'pymongo',
+        'librosa',
+        'numpy',
+        'pandas',
+        'tqdm',
+        'requests',
+        'wget',
+        'matplotlib',
+        'setuptools>=36.2.1',
+        'hyperopt',
+        'toolbench',
+    ],
     tests_require = test_deps,
     extras_require = {
     #    'docs': ['pdoc3'],
