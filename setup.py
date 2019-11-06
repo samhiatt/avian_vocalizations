@@ -57,6 +57,7 @@ setup(
         'setuptools>=36.2.1',
         'hyperopt',
         'toolbench',
+        'gitpython',
     ],
     tests_require = test_deps,
     extras_require = {
