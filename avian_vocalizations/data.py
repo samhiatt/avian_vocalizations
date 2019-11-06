@@ -36,7 +36,6 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         """
         self.n_frames = n_frames
         self.batch_size = batch_size
-        self.n_batches = np.ceil(len(list_file_ids)/batch_size)
         self.n_classes = n_classes if n_classes else max(labels)-min(labels)+1
         self.labels_by_id = {list_file_ids[i]:l for i,l in enumerate(labels)}
         self.list_file_ids = list_file_ids
@@ -49,6 +48,9 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         self.index_df, self.shapes_df, self.train_df, self.test_df = load_data(data_dir)
         self.melsg_scaler, self.melsg_log_scaler, self.mfcc_scaler = \
                                         get_scalers(self.index_df.loc[self.train_df.index], data_dir)
+    @property
+    def n_batches(self):
+        return len(self)
 
     def __len__(self):
         'Denotes the number of batches per epoch'
