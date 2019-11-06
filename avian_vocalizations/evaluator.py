@@ -82,6 +82,8 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
                 n_splits, n_epochs, hp))
         ctrl.attachments['params'] = bytes(json.dumps(dict(hp._asdict())), encoding='utf-8')
 #         ctrl.checkpoint(dict(status=STATUS_RUNNING, params=dict(hp._asdict())))
+        print(dir(ctrl.trials))
+        print(ctrl.trials._exp_key)
         
         sss = StratifiedShuffleSplit(n_splits=n_splits, test_size=1/4, random_state=37)
         scores = []
@@ -100,7 +102,8 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
             model = get_model()
             model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
             status_reporter = StatusReporter(ctrl, split_i=len(scores))
-            tensorboard_callback = TensorBoard(log_dir="./tensorboard/split%i"%len(scores))
+            tensorboard_callback = TensorBoard(log_dir="./tensorboard/%s/dropout%f/split%i"%(
+                    ctrl.trials._exp_key, hp.dropout_rate, len(scores)))
             result = model.fit_generator(
                         training_generator, 
                         validation_data=validation_generator,
