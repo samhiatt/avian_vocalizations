@@ -48,14 +48,16 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         
         self.index_df, self.shapes_df, self.train_df, self.test_df = load_data(data_dir)
         self.melsg_scaler, self.melsg_log_scaler, self.mfcc_scaler = \
-                                        get_scalers(self.index_df.loc[self.train_df.index])
+                                        get_scalers(self.index_df.loc[self.train_df.index], data_dir)
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.list_file_ids) / self.batch_size))
+        return int(np.ceil(len(self.list_file_ids) / self.batch_size))
 
     def __getitem__(self, index):
         'Generate one batch of data'
+        if index>=len(self):
+            raise IndexError("Requested batch index %i on generator with only %i batches."%(index, len(self)))
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
         list_file_ids_temp = [self.list_file_ids[k] for k in indexes]
         X, y = self.__data_generation(list_file_ids_temp, index)
@@ -71,11 +73,11 @@ class AudioFeatureGenerator(keras.utils.Sequence):
 
     def __data_generation(self, list_file_ids_temp, batch_index):
         'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
-        melsg_arr = np.empty((self.batch_size, 128, self.n_frames, self.n_channels))
-        mfcc_arr = np.empty((self.batch_size, 20, self.n_frames, self.n_channels))
-        #X = np.empty((self.batch_size, 128+20, self.n_frames, self.n_channels))
-        y = np.empty((self.batch_size, self.n_classes), dtype=int) # one-hot encoded labels
-        offsets = np.empty(self.batch_size)
+        melsg_arr = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
+        mfcc_arr = np.empty((len(list_file_ids_temp), 20, self.n_frames, self.n_channels))
+        #X = np.empty((len(list_file_ids_temp), 128+20, self.n_frames, self.n_channels))
+        y = np.empty((len(list_file_ids_temp), self.n_classes), dtype=int) # one-hot encoded labels
+        offsets = np.empty(len(list_file_ids_temp))
 
         for i, file_id in enumerate(list_file_ids_temp):
             melsg = get_melsg_array(self.index_df, file_id)
@@ -86,6 +88,7 @@ class AudioFeatureGenerator(keras.utils.Sequence):
             
             # Pick a random window from the sound file
             d_len = mfcc.shape[1] - self.n_frames
+            np.random.seed(self.seed+i)
             if d_len<0: # Clip is shorter than window, so pad with mean value.
                 n = int(np.random.uniform(0, -d_len))
                 pad_range = (n, -d_len-n) # pad with n values on the left, clip_length - n values on the right 
@@ -255,7 +258,7 @@ def get_scalers(index_df, data_dir='data', recalc=False):
     scaler_params=os.path.join(data_dir,'scaler_params.csv')
 
     if recalc or not os.path.exists(scaler_params):
-        print("%s not found. Calculating scaler statistics...")
+        print("%s not found. Calculating scaler statistics..."%scaler_params)
         for i, file_id in enumerate(index_df.index):
             #print("\rReading melsg %i/%i (%.1f%%)"%(i+1,len(index_df),100*(i+1)/len(index_df)), end="")
             melsg = get_melsg_array(index_df, file_id).flatten()

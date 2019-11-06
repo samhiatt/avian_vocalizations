@@ -28,6 +28,7 @@ def show_sample(melsg, mfcc, file_id=None, label="", offset=0, data_dir='data', 
     if file_id and load_clip:
         file_path = os.path.join(data_dir,'audio',"XC%s.mp3"%file_id)
         print(file_path)
+        import warnings; warnings.simplefilter('ignore')
         data, samplerate = librosa.load(file_path)
         display(Audio(data, rate=samplerate))
     
