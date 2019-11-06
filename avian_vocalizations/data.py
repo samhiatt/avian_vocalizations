@@ -160,7 +160,7 @@ def load_data(data_dir='data', download_data=False ):
             raise(DataFileNotFound(path))
             
             
-    index_df = pd.read_csv("data/xeno-canto_ca-nv_index.csv", 
+    index_df = pd.read_csv(os.path.join(data_dir,"xeno-canto_ca-nv_index.csv"), 
                            index_col='file_id')
     shapes_df = pd.read_csv(os.path.join(data_dir,"feature_shapes.csv"),
                             index_col=0 )
