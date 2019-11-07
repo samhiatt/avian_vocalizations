@@ -81,9 +81,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
         print("Running training trial with %i splits, %i epochs, with hyperparams: %s"%(
                 n_splits, n_epochs, hp))
         ctrl.attachments['params'] = bytes(json.dumps(dict(hp._asdict())), encoding='utf-8')
-#         ctrl.checkpoint(dict(status=STATUS_RUNNING, params=dict(hp._asdict())))
-        print(dir(ctrl.trials))
-        print(ctrl.trials._exp_key)
+        #ctrl.checkpoint(dict(status=STATUS_RUNNING, params=dict(hp._asdict())))
         
         sss = StratifiedShuffleSplit(n_splits=n_splits, test_size=1/4, random_state=37)
         scores = []
@@ -111,7 +109,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
                         steps_per_epoch=training_generator.n_batches,
                         validation_steps=validation_generator.n_batches,
                         callbacks=[status_reporter, tensorboard_callback],
-                        use_multiprocessing=True, workers=4,
+                        #use_multiprocessing=True, workers=4,
                         verbose=0, )
             min_loss = np.min(result.history['val_loss'])
             argmin_loss = np.argmin(result.history['val_loss'])
@@ -136,6 +134,7 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
                 'loss_variance': var_loss,
                 'accuracy': mean_acc,
                 'accuracy_variance': var_acc,
+                'params': dict(hp._asdict()),
                 'attachments':{
                     'summary': bytes(out.getvalue(), encoding='utf-8'),
                     },

@@ -20,7 +20,7 @@ train_index_filename = 'train_file_ids.csv'
 class AudioFeatureGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, list_file_ids, labels, batch_size, n_frames=128, n_channels=1, 
-                 data_dir='data', shuffle=False, seed=None, n_classes=None, verbose=False):
+                 data_dir='data', shuffle=False, seed=0, n_classes=None, verbose=False):
         """ Initialize a data generator with the list of labeled `file_id`s.
         Args
             list_file_ids (list[int]): A list of `file_id`s to be included in this generator.
