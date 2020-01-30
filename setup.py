@@ -40,7 +40,6 @@ setup(
        ],
     },
     dependency_links = [
-        'git+https://github.com/samhiatt/toolbench/tarball/master#egg=toolbench',
         'git+https://github.com/hyperopt/hyperopt/tarball/master#egg=hyperopt',
     ],
     install_requires = [ 
@@ -56,7 +55,6 @@ setup(
         'matplotlib',
         'setuptools>=36.2.1',
         'hyperopt',
-        'toolbench',
         'gitpython',
     ],
     tests_require = test_deps,

@@ -78,7 +78,6 @@ tensorboard==1.15.0
 tensorflow==1.15.2
 tensorflow-estimator==1.15.1
 termcolor==1.1.0
-toolbench==0.0.1
 tornado==6.0.3
 tqdm==4.37.0
 traitlets==4.3.3
