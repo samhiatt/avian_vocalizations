@@ -14,7 +14,7 @@ def create_instance(vast, offer_id, storage=15):
     echo onstart.sh Completed at `date` >> /root/startup.log
     """
     resp=vast.create_instance(offer_id, disk=storage, onstart_cmd=onstart, python_utf8=True, lang_utf8=True,
-                              image="tensorflow/tensorflow:1.15.0-gpu-py3-jupyter")
+                              image="tensorflow/tensorflow:1.15.2-gpu-py3-jupyter")
     instance_id = resp['new_contract']
 
     return vast.get_instance(instance_id, retries=4)
