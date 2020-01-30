@@ -80,7 +80,7 @@ pipenv lock -r > requirements.txt
 pip install -r requirements.txt >> $INSTALL_LOG 2>&1
 pip install -e . >> $INSTALL_LOG 2>&1
 download_data >> $INSTALL_LOG 2>&1
-echo avian_vocalizations INSTALL COMPLETE `date` >> INSTALL_LOG 2>&1
+echo avian_vocalizations INSTALL COMPLETE `date` >> $INSTALL_LOG 2>&1
 """)
 # ("""pipenv install >> $INSTALL_LOG 2>&1
 # pipenv run python setup.py develop >> $INSTALL_LOG 2>&1
