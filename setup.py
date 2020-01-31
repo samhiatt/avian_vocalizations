@@ -37,7 +37,7 @@ setup(
            'vast_run_install_script=avian_vocalizations.vast:run_install_script',
            'vast_monitor_install_script=avian_vocalizations.vast:monitor_install_script',
            'vast_monitor_hyperopt_worker=avian_vocalizations.vast:monitor_hyperopt_worker',
-           'vast_start_remote_hyperopt_worker=avian_vocalizations.vast:start_remote_hyperopt_worker',
+           'vast_start_hyperopt_worker=avian_vocalizations.vast:start_remote_hyperopt_worker',
        ],
     },
     dependency_links = [
