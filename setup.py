@@ -32,16 +32,17 @@ setup(
     entry_points = {
        'console_scripts':[
            'download_data=avian_vocalizations.data:_download_data',
-           'running_instances=avian_vocalizations.vast:show_running_instances',
-           'run_install_script=avian_vocalizations.vast:run_install_script',
-           'monitor_install_script=avian_vocalizations.vast:monitor_install_script',
-           'monitor_hyperopt_worker=avian_vocalizations.vast:monitor_hyperopt_worker',
-           'start_remote_hyperopt_worker=avian_vocalizations.vast:start_remote_hyperopt_worker',
+           'vast_create_instance=avian_vocalizations.vast:create_instance',
+           'vast_running_instances=avian_vocalizations.vast:show_running_instances',
+           'vast_run_install_script=avian_vocalizations.vast:run_install_script',
+           'vast_monitor_install_script=avian_vocalizations.vast:monitor_install_script',
+           'vast_monitor_hyperopt_worker=avian_vocalizations.vast:monitor_hyperopt_worker',
+           'vast_start_remote_hyperopt_worker=avian_vocalizations.vast:start_remote_hyperopt_worker',
        ],
     },
-    dependency_links = [
-        'git+https://github.com/hyperopt/hyperopt/tarball/master#egg=hyperopt',
-    ],
+    #dependency_links = [
+    #    'git+https://github.com/hyperopt/hyperopt/tarball/master#egg=hyperopt',
+    #],
     install_requires = [ 
         'tensorflow>=1.15,<2',
         'keras',
@@ -54,7 +55,7 @@ setup(
         'wget',
         'matplotlib',
         'setuptools>=36.2.1',
-        'hyperopt',
+        'hyperopt==0.2.2',
         'gitpython',
     ],
     tests_require = test_deps,
