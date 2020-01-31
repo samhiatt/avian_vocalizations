@@ -18,7 +18,7 @@ gitpython==3.0.5
 google-pasta==0.1.7
 grpcio==1.24.3
 h5py==2.10.0
-hyperopt==0.2.2
+-e git+https://github.com/samhiatt/hyperopt.git@2b114d01707b6f45f512fa1c648b5262437c9d94#egg=hyperopt
 idna==2.8
 importlib-metadata==0.23
 ipykernel==5.1.3

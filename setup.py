@@ -40,9 +40,10 @@ setup(
            'vast_start_remote_hyperopt_worker=avian_vocalizations.vast:start_remote_hyperopt_worker',
        ],
     },
-    #dependency_links = [
-    #    'git+https://github.com/hyperopt/hyperopt/tarball/master#egg=hyperopt',
-    #],
+    dependency_links = [
+        #'git+https://github.com/hyperopt/hyperopt/tarball/master#egg=hyperopt',
+        'git+https://github.com/samhiatt/hyperopt/tarball/2b114d01707b6f45f512fa1c648b5262437c9d94#egg=hyperopt',
+    ],
     install_requires = [ 
         'tensorflow>=1.15,<2',
         'keras',
@@ -55,7 +56,8 @@ setup(
         'wget',
         'matplotlib',
         'setuptools>=36.2.1',
-        'hyperopt==0.2.2',
+        'hyperopt',
+        #'hyperopt==0.2.2',
         'gitpython',
     ],
     tests_require = test_deps,
