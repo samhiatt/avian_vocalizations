@@ -7,17 +7,37 @@ vast = VastClient().authenticate()
 
 def show_running_instances():
     for instance in vast.get_running_instances():
+        print()
+        print("Instance %i:"%instance.id)
         print(instance.ssh_connection_command)
         
-def _get_instances():
+def create_instance():
     if len(sys.argv)<2:
-        print("Expected instance id argument or '-a' for all running instances.")
+        print("Expected offer id argument.")
         sys.exit(1)
-    if sys.argv[1].strip()=='-a':
-        instances = vast.get_running_instances()
-    else:
-        instances = [ vast.get_instance(int(sys.argv[1])) ]
-    return instances
+    offer_id = int(sys.argv[1])
+    onstart = """#!/bin/sh
+    touch ~/.no_auto_tmux
+    echo onstart.sh Starting `date` >> /root/startup.log 2>&1
+    apt-get install -y mongodb-server git vim >> /root/startup.log 2>&1
+    service mongodb start >> /root/startup.log 2>&1
+    pip install --upgrade pip >> /root/startup.log 2>&1
+    echo onstart.sh Completed at `date` >> /root/startup.log
+    """
+    resp=vast.create_instance(offer_id, disk=15, onstart_cmd=onstart, python_utf8=True, lang_utf8=True,
+                              image="tensorflow/tensorflow:1.15.2-gpu-py3-jupyter")
+    instance_id = resp['new_contract']
+    print("Instance %i created."%instance_id) 
+        
+#def _get_instances():
+#    if len(sys.argv)<2:
+#        print("Expected instance id argument or '-a' for all running instances.")
+#        sys.exit(1)
+#    if sys.argv[1].strip()=='-a':
+#        instances = vast.get_running_instances()
+#    else:
+#        instances = [ vast.get_instance(int(sys.argv[1])) ]
+#    return instances
 
 def _get_instance():
     if len(sys.argv)<2:
@@ -64,7 +84,8 @@ def start_remote_hyperopt_worker():
     remote = instance.pb_remote
     remote.sftp.putfo(StringIO(start_worker_script_str),start_hyperopt_worker_target)
     remote['chmod']('+x',start_hyperopt_worker_target)
-    remote.session().popen(start_hyperopt_worker_target)
+    pworker = remote.session().popen(start_hyperopt_worker_target)
+    _monitor_file(remote, hyperopt_worker_log, pworker)
     
         
 install_script_str = StringIO("""#!/bin/sh
@@ -75,8 +96,8 @@ cd ~
 cd avian_vocalizations
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
-pip install pipenv  >> $INSTALL_LOG 2>&1
-pipenv lock -r > requirements.txt
+#pip install pipenv  >> $INSTALL_LOG 2>&1
+#pipenv lock -r > requirements.txt
 pip install -r requirements.txt >> $INSTALL_LOG 2>&1
 pip install -e . >> $INSTALL_LOG 2>&1
 download_data >> $INSTALL_LOG 2>&1
