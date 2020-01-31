@@ -43,6 +43,7 @@ setup(
     dependency_links = [
         #'git+https://github.com/hyperopt/hyperopt/tarball/master#egg=hyperopt',
         'git+https://github.com/samhiatt/hyperopt/tarball/2b114d01707b6f45f512fa1c648b5262437c9d94#egg=hyperopt',
+        #'git+https://github.com/samhiatt/vast-python/tarball/abf103999854e8262e9d6a1ea8b361daffb6e0d8#egg=vastai',
     ],
     install_requires = [ 
         'tensorflow>=1.15,<2',
