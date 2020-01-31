@@ -59,7 +59,7 @@ def main(args):
 
 if __name__=='__main__':
     parser = ArgumentParser(description="Create a new vast.ai instance.")
-    parser.add_argument('-o','--offer', dest='offer_id')
+    parser.add_argument('-o','--offer', dest='offer_id', type=int, default=None)
     parser.add_argument('-p','--dph', dest='max_dph', type=float, default=.2, 
                         help="Maximum $/hr")
     parser.add_argument('-d','--inet_down', dest='min_inet_down', type=float, default=100, 
