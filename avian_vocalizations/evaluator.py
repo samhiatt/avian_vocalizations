@@ -20,7 +20,7 @@ import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import os; os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-ParamSpace = namedtuple("ParamSpace",['n_frames','dropout_rate','batch_size'])
+ParamSpace = namedtuple("ParamSpace",['n_frames','dropout_rate','batch_size', 'audio_feature_type'])
 Scores = namedtuple("Scores",['loss','accuracy','argmin_loss'])
     
 class StatusReporter(Callback):
@@ -32,6 +32,7 @@ class StatusReporter(Callback):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
         atmts = self.ctrl.attachments
+        print("on_epoch_end, attachments: ",atmts)
         metrics_key = 'metrics.split%i'%self.split_i
         metrics = json.loads(atmts[metrics_key]) if metrics_key in atmts.keys() \
                 else {k:[] for k in logs.keys()}
@@ -57,13 +58,19 @@ class StatusReporter(Callback):
 
 def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
     
+    # TODO: Add AFG options to params.
+    
+    
     @fmin_pass_expr_memo_ctrl
     def ModelEvaluator(expr, memo, ctrl):
         
         def get_model():
+            # TODO: Add AFG options to ModelFactory call
             return ModelFactory(n_classes, 
                                 n_frames=hp.n_frames, 
-                                dropout_rate=hp.dropout_rate)
+                                dropout_rate=hp.dropout_rate,
+                                audio_feature_type=hp.audio_feature_type,
+                               )
         
         index_df, shapes_df, train_df, test_df = data.load_data(data_dir)
 
@@ -91,15 +98,20 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
             training_generator = data.AudioFeatureGenerator(
                 [X_train[i] for i in cv_train_index], 
                 [y_train[i] for i in cv_train_index], 
+                data_dir=data_dir,
+                audio_feature_type=hp.audio_feature_type,
                 batch_size=hp.batch_size, shuffle=True, seed=37 )
             validation_generator = data.AudioFeatureGenerator(
                 [X_train[i] for i in cv_val_index], 
-                [y_train[i] for i in cv_val_index], 
+                [y_train[i] for i in cv_val_index],  
+                audio_feature_type=hp.audio_feature_type,
+                data_dir=data_dir,
                 batch_size=hp.batch_size )
             # Get a new (untrained) model
             model = get_model()
             model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-            status_reporter = StatusReporter(ctrl, split_i=len(scores))
+            # StatusReporter not working right with local trials. Disabling. 
+            #status_reporter = StatusReporter(ctrl, split_i=len(scores))
             tensorboard_callback = TensorBoard(log_dir="./tensorboard/%s/dropout%f/split%i"%(
                     ctrl.trials._exp_key, hp.dropout_rate, len(scores)))
             result = model.fit_generator(
@@ -108,7 +120,8 @@ def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
                         epochs=n_epochs, 
                         steps_per_epoch=training_generator.n_batches,
                         validation_steps=validation_generator.n_batches,
-                        callbacks=[status_reporter, tensorboard_callback],
+                        #callbacks=[status_reporter, tensorboard_callback],
+                        callbacks=[tensorboard_callback],
                         #use_multiprocessing=True, workers=4,
                         verbose=0, )
             min_loss = np.min(result.history['val_loss'])

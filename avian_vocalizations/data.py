@@ -20,7 +20,9 @@ train_index_filename = 'train_file_ids.csv'
 class AudioFeatureGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, list_file_ids, labels, batch_size, n_frames=128, n_channels=1, 
-                 data_dir='data', shuffle=False, seed=0, n_classes=None, verbose=False):
+                 data_dir='data', shuffle=False, seed=0, n_classes=None, verbose=False,
+                 audio_feature_type='both',
+                ):
         """ Initialize a data generator with the list of labeled `file_id`s.
         Args
             list_file_ids (list[int]): A list of `file_id`s to be included in this generator.
@@ -33,6 +35,8 @@ class AudioFeatureGenerator(keras.utils.Sequence):
             seed (int): Seed for `numpy.random.RandomState`.
             n_classes (int): Number of classes (distinct labels) in dataset. (default: `labels.max()-labels.min()+1`)
             verbose (bool): Print to stdout after generating each batch. (default: False)
+            audio_feature_type (string): One of 'spectrogram', mfcc', 'both' for two 2-d arrays, or 'stacked' 
+                                         to stack both and return a single 2-d array.
         """
         self.n_frames = n_frames
         self.batch_size = batch_size
@@ -48,6 +52,8 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         self.index_df, self.shapes_df, self.train_df, self.test_df = load_data(data_dir)
         self.melsg_scaler, self.melsg_log_scaler, self.mfcc_scaler = \
                                         get_scalers(self.index_df.loc[self.train_df.index], data_dir)
+        self.audio_feature_type = audio_feature_type
+        
     @property
     def n_batches(self):
         return len(self)
@@ -72,50 +78,101 @@ class AudioFeatureGenerator(keras.utils.Sequence):
             np.random.seed(self.seed)
             self.seed = self.seed+1 # increment the seed so we get a different batch.
             np.random.shuffle(self.indexes)
+            
+    def __include_mfcc(self):
+        if self.audio_feature_type == 'spectrogram':
+            # Only mel-spectrogram needed. Don't include mfcc.
+            return False
+        else: return True
+        
+    def __include_melsg(self):
+        if self.audio_feature_type == 'mfcc':
+            # Only mfcc needed. Don't include melsg.
+            return False
+        else: return True
 
     def __data_generation(self, list_file_ids_temp, batch_index):
         'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
-        melsg_arr = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
-        mfcc_arr = np.empty((len(list_file_ids_temp), 20, self.n_frames, self.n_channels))
+        if self.__include_melsg():
+            melsg_arr = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
+        if self.__include_mfcc():
+            mfcc_arr = np.empty((len(list_file_ids_temp), 20, self.n_frames, self.n_channels))
+        if self.audio_feature_type=='stacked':
+            X = np.empty((self.batch_size, 128, self.n_frames, 1))
+            print("X.shape: ",X.shape)
         #X = np.empty((len(list_file_ids_temp), 128+20, self.n_frames, self.n_channels))
         y = np.empty((len(list_file_ids_temp), self.n_classes), dtype=int) # one-hot encoded labels
         offsets = np.empty(len(list_file_ids_temp))
 
         for i, file_id in enumerate(list_file_ids_temp):
-            melsg = get_melsg_array(self.index_df, file_id)
-            melsg_lognorm = self.melsg_log_scaler.transform(np.log(melsg, out=np.zeros(melsg.shape), where=melsg>0 ))
+            if self.__include_melsg():
+                melsg = get_melsg_array(self.index_df, file_id)
+                melsg_lognorm = self.melsg_log_scaler.transform(np.log(melsg, out=np.zeros(melsg.shape), where=melsg>0 ))
         
-            mfcc = get_mfcc_array(self.index_df, file_id)
-            mfcc = self.mfcc_scaler.transform(mfcc)
+            if self.__include_mfcc():
+                mfcc = get_mfcc_array(self.index_df, file_id)
+                mfcc = self.mfcc_scaler.transform(mfcc)
             
             # Pick a random window from the sound file
-            d_len = mfcc.shape[1] - self.n_frames
+            if self.__include_mfcc():
+                d_len = mfcc.shape[1] - self.n_frames
+            else:
+                d_len = melsg.shape[1] - self.n_frames
             np.random.seed(self.seed+i)
             if d_len<0: # Clip is shorter than window, so pad with mean value.
                 n = int(np.random.uniform(0, -d_len))
                 pad_range = (n, -d_len-n) # pad with n values on the left, clip_length - n values on the right 
 #                 melsg_cropped = np.pad(melsg, ((0,0), pad_range), 'constant', constant_values=melsg.mean())
-                melsg_lognorm_cropped = np.pad(melsg_lognorm, ((0,0), pad_range), 'constant', constant_values=0)
-                mfcc_cropped = np.pad(mfcc, ((0,0), pad_range), 'constant', constant_values=0)
+                if self.__include_melsg():
+                    melsg_lognorm_cropped = np.pad(melsg_lognorm, ((0,0), pad_range), 'constant', constant_values=0)
+                if self.__include_mfcc():
+                    mfcc_cropped = np.pad(mfcc, ((0,0), pad_range), 'constant', constant_values=0)
             else: # Clip is longer than window, so slice it up
                 n = int(np.random.uniform(0, d_len))
 #                 melsg_cropped = melsg[:, n:(n+self.n_frames)]
-                melsg_lognorm_cropped = melsg_lognorm[:, n:(n+self.n_frames)]
-                mfcc_cropped = mfcc[:, n:(n+self.n_frames)]
+                if self.__include_melsg():
+                    melsg_lognorm_cropped = melsg_lognorm[:, n:(n+self.n_frames)]
+                if self.__include_mfcc():
+                    mfcc_cropped = mfcc[:, n:(n+self.n_frames)]
             offsets[i,] = n
-            melsg_arr[i,] = melsg_lognorm_cropped.reshape(1,128,self.n_frames,1)
-            mfcc_arr[i,] = mfcc_cropped.reshape(1,20,self.n_frames,1)
+            if self.__include_melsg():
+                melsg_arr[i,] = melsg_lognorm_cropped.reshape(1,128,self.n_frames,1)
+            if self.__include_mfcc():
+                mfcc_arr[i,] = mfcc_cropped.reshape(1,20,self.n_frames,1)
+            if self.audio_feature_type=='stacked':
+                X[i,] = melsg_lognorm_cropped.reshape(1,128,self.n_frames,1)
+                # Overwrite the bottom of X with MFCCs (we don't need the low frequency bands anyway) 
+                X[i,:20] = mfcc_cropped.reshape(1,20,self.n_frames,1)
             y[i,] = to_categorical(self.labels_by_id[file_id], num_classes=self.n_classes)
 
 #         print("Generated batch with input shapes ",(melsg_arr.shape, mfcc_arr.shape))
         if self.verbose:
             print("Generated batch #%i/%i."%(batch_index+1,self.n_batches))
             sys.stdout.flush()
-        return {'melsg':melsg_arr, 
-                'mfcc':mfcc_arr, 
-                'id':list_file_ids_temp,
-                'offset':offsets,
-               }, y
+        
+        if self.audio_feature_type=='both':
+            return {'melsg':melsg_arr, 
+                    'mfcc':mfcc_arr, 
+                    'id':list_file_ids_temp,
+                    'offset':offsets,
+                   }, y
+        elif self.audio_feature_type=='mfcc':
+            return {'mfcc':mfcc_arr, 
+                    'id':list_file_ids_temp,
+                    'offset':offsets,
+                   }, y
+        elif self.audio_feature_type=='spectrogram':
+            return {'melsg':melsg_arr, 
+                    'id':list_file_ids_temp,
+                    'offset':offsets,
+                   }, y
+        elif self.audio_feature_type=='stacked':
+            return {'stacked': X,#TODO
+                    'id':list_file_ids_temp,
+                    'offset':offsets,
+                   }, y
+        else: 
+            raise Exception("Expected audio_feature_type to be one of 'spectrogram', mfcc', 'both', or 'stacked'.")
 
 class DataDirNotFound(Exception):
     """ Raised when data dir is not found. Suggests downloading by calling `load_data(download_data=True)`.
