@@ -98,8 +98,7 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         if self.__include_mfcc():
             mfcc_arr = np.empty((len(list_file_ids_temp), 20, self.n_frames, self.n_channels))
         if self.audio_feature_type=='stacked':
-            X = np.empty((self.batch_size, 128, self.n_frames, 1))
-            print("X.shape: ",X.shape)
+            X = np.empty((len(list_file_ids_temp), 128, self.n_frames, 1))
         #X = np.empty((len(list_file_ids_temp), 128+20, self.n_frames, self.n_channels))
         y = np.empty((len(list_file_ids_temp), self.n_classes), dtype=int) # one-hot encoded labels
         offsets = np.empty(len(list_file_ids_temp))
@@ -171,6 +170,7 @@ class AudioFeatureGenerator(keras.utils.Sequence):
                     'id':list_file_ids_temp,
                     'offset':offsets,
                    }, y
+#             return X, y
         else: 
             raise Exception("Expected audio_feature_type to be one of 'spectrogram', mfcc', 'both', or 'stacked'.")
 

@@ -32,7 +32,6 @@ class StatusReporter(Callback):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
         atmts = self.ctrl.attachments
-        print("on_epoch_end, attachments: ",atmts)
         metrics_key = 'metrics.split%i'%self.split_i
         metrics = json.loads(atmts[metrics_key]) if metrics_key in atmts.keys() \
                 else {k:[] for k in logs.keys()}
@@ -58,14 +57,10 @@ class StatusReporter(Callback):
 
 def EvaluatorFactory(n_splits=3, n_epochs=10, data_dir='data'):
     
-    # TODO: Add AFG options to params.
-    
-    
     @fmin_pass_expr_memo_ctrl
     def ModelEvaluator(expr, memo, ctrl):
         
         def get_model():
-            # TODO: Add AFG options to ModelFactory call
             return ModelFactory(n_classes, 
                                 n_frames=hp.n_frames, 
                                 dropout_rate=hp.dropout_rate,

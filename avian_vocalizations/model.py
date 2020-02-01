@@ -5,7 +5,48 @@ from keras.layers import MaxPooling2D, Conv2D, GlobalAveragePooling2D, \
 
 # ModelParams = namedtuple("ModelParams",['n_frames', 'dropout_rate'])
 
-def ModelFactory(n_classes, n_frames=128, dropout_rate=.2):
+def ModelFactory(n_classes, n_frames=128, dropout_rate=.2, audio_feature_type='both'):
+    if audio_feature_type=='both':
+        return combined_model(n_classes, n_frames, dropout_rate)
+    elif audio_feature_type=='stacked':
+        return stacked_model(n_classes, n_frames, dropout_rate)
+    
+    
+def stacked_model(n_classes, n_frames, dropout_rate):
+    stacked_input = Input(shape=(128,n_frames,1),name='stacked')
+    model = Conv2D(64,3,padding='valid',activation="relu")(stacked_input)
+    model = MaxPooling2D(pool_size=3)(model)
+    model = Dropout(rate=dropout_rate)(model)
+    model = Conv2D(64,3,padding='valid',activation="relu")(model)
+    model = MaxPooling2D(pool_size=3)(model)
+    model = Dropout(rate=dropout_rate)(model)
+    model = Conv2D(64,3,padding='valid',activation="relu")(model)
+    model = MaxPooling2D(pool_size=3)(model)
+    model = Dropout(rate=dropout_rate)(model)
+    model = GlobalAveragePooling2D()(model)
+    model = Dense(n_classes, activation="softmax")(model)
+    model = Model(stacked_input, model)
+    model.build((128,n_frames,1))
+    return model
+
+#     model = Sequential()
+#     model.add(Conv2D(64,3,input_shape=(128,n_frames,1),name='stacked',padding='valid',activation="relu"))
+#     model.add(MaxPooling2D(pool_size=3))
+#     model.add(Dropout(rate=dropout_rate))
+#     model.add(Conv2D(64,3,padding='valid',activation="relu"))
+#     model.add(MaxPooling2D(pool_size=3))
+#     model.add(Dropout(rate=dropout_rate))
+#     model.add(Conv2D(64,3,padding='valid',activation="relu"))
+#     model.add(MaxPooling2D(pool_size=3))
+#     model.add(Dropout(rate=dropout_rate))
+#     model.add(GlobalAveragePooling2D())
+#     model.add(Dense(n_classes, activation="softmax"))
+#     return model
+    
+def combined_model(n_classes, n_frames, dropout_rate):
+    """ 
+    Returns: keras model compatible with two separate input pathways, one for MFCCs and the other ofr mel-spectrograms. 
+    """
     melsg_input = Input(shape=(128,n_frames,1),name='melsg')
     melsg_pathway = Conv2D(16,3,name='melsg_conv2d_1',
                          padding='same',activation="relu")(melsg_input)
