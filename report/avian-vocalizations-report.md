@@ -56,7 +56,7 @@ Final model performance is evaluated by first training the best model chosen dur
 
 The fact that the number of samples per class is balanced is an important consideration as each species should be represented by recordings with a variety of different environmental conditions. If, say, a single sample was chopped up and used as multiple examples for training the model would likely end up overfitting to environental factors specific to that recording, for example by picking up on the the sound of a waterfall in the background instead of listening to the birds. Having a balanced number of samples per class should help regularize environmental factors like these. 
 
-![Total Seconds of Audio per Species](avian-vocalizations-report_files/avian-vocalizations-report_4_0.png){#fig:seconds_per_species}
+![Total Duration of Audio per Species](avian-vocalizations-report_files/avian-vocalizations-report_4_0.png){#fig:seconds_per_species}
 
 Looking at how the data is distributed in terms of the total duration of audio samples per class shows that each species is not equally represented in the dataset. @Fig:seconds_per_species shows that sample lengths range from 185 seconds to 1877 seconds of audio, with a mean of 80 seconds. This imbalance is due to the process used to compile the list of audio samples for each species. In particular, the 30 _shortest_ samples for each species recorded in California and Nevada were downloaded from xeno-canto.org, with the intention of reducing the load on the servers. This results in a dataset containing shorter samples for species that are more commonly recorded.  This will be an important consideration when evaluating model performance. 
 
