@@ -32,21 +32,13 @@ setup(
     entry_points = {
        'console_scripts':[
            'download_data=avian_vocalizations.data:_download_data',
-           'running_instances=avian_vocalizations.vast:show_running_instances',
-           'run_install_script=avian_vocalizations.vast:run_install_script',
-           'monitor_install_script=avian_vocalizations.vast:monitor_install_script',
-           'monitor_hyperopt_worker=avian_vocalizations.vast:monitor_hyperopt_worker',
-           'start_remote_hyperopt_worker=avian_vocalizations.vast:start_remote_hyperopt_worker',
        ],
     },
     dependency_links = [
-        'git+https://github.com/samhiatt/toolbench/tarball/master#egg=toolbench',
-        'git+https://github.com/hyperopt/hyperopt/tarball/master#egg=hyperopt',
     ],
     install_requires = [ 
-        'tensorflow>=1.15,<2',
+        'tensorflow>=1.15.2,<2',
         'keras',
-        'pymongo',
         'librosa',
         'numpy',
         'pandas',
@@ -55,8 +47,6 @@ setup(
         'wget',
         'matplotlib',
         'setuptools>=36.2.1',
-        'hyperopt',
-        'toolbench',
         'gitpython',
     ],
     tests_require = test_deps,

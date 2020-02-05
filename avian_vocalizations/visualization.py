@@ -6,7 +6,7 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 import matplotlib.pyplot as plt
 import numpy as np
 
-def show_sample(melsg, mfcc, file_id=None, label="", offset=0, data_dir='data', load_clip=False):
+def show_sample(melsg, file_id=None, label="", offset=0, data_dir='data', load_clip=False):
     fig = plt.figure(figsize=(7,5))
     if file_id or label!="":
         fig.suptitle(' '.join([ ("XC%s"%file_id) if file_id else "", 
@@ -16,14 +16,14 @@ def show_sample(melsg, mfcc, file_id=None, label="", offset=0, data_dir='data', 
     melsg_ax = fig.add_subplot(gs[0:3])
     specshow(melsg.squeeze(), y_axis='mel', vmin=-3, vmax=3, ax=melsg_ax)
     plt.colorbar(melsg_ax.collections[0], ax=melsg_ax, pad=.01)
-    mfcc_ax = fig.add_subplot(gs[3])
-    specshow(mfcc.squeeze(), ax=mfcc_ax, x_axis='s')
-    mfcc_ax.set_ylabel("MFCC")
-    mfcc_ax.set_yticks([0,5,10,15])
+    #mfcc_ax = fig.add_subplot(gs[3])
+    #specshow(mfcc.squeeze(), ax=mfcc_ax, x_axis='s')
+    #mfcc_ax.set_ylabel("MFCC")
+    #mfcc_ax.set_yticks([0,5,10,15])
     # TODO: Ensure 22050 is correct frame rate
-    mfcc_ax.set_xticklabels(["%0.1f"%(t+offset/(22050/512)) 
-                             for t in mfcc_ax.get_xticks()])
-    plt.colorbar(mfcc_ax.collections[0], ax=mfcc_ax, aspect=7, pad=.01)
+    #mfcc_ax.set_xticklabels(["%0.1f"%(t+offset/(22050/512)) 
+    #                         for t in mfcc_ax.get_xticks()])
+    #plt.colorbar(mfcc_ax.collections[0], ax=mfcc_ax, aspect=7, pad=.01)
     plt.show()
     if file_id and load_clip:
         file_path = os.path.join(data_dir,'audio',"XC%s.mp3"%file_id)
