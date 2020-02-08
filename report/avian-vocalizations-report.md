@@ -21,13 +21,13 @@ header-includes:
 # Project Overview  
 
 
-## Backround  
+## Background  
 
 Many social animals communicate using vocalizations that can be used to identify their species. The ability to automatically classify audio recordings of animal vocalizations opens up countless opportunities for sound-aware computer applications and could help accelerate studies of these animals. For example, a classifier trained to recognize the call of a specific species of bird could be used to trigger a camera recording, or automatically tag a live audio stream containing avian calls with the species of the bird that made it, producing a time-series record of the presence of this species. 
 
 [Xeno-Canto.org](https://www.xeno-canto.org/)(@xenocanto) is an online community and crowd-sourced Creative Commons database containing audio recordings of avian vocalizations from around the world, indexed by species. It presents a good opportunity for experimentation with machine learning for classification of audio signals. The [Xeno-Canto Avian Vocalizations CA/NV, USA](https://www.kaggle.com/samhiatt/xenocanto-avian-vocalizations-canv-usa)[@xc_ca_nv] dataset was procured for the purpose of jumpstarting exploration into this space. It contains a small subset of the available data, including 30 varying-length audio samples for each of 91 different bird species common in California and Nevada, USA.
 
-Spectrograms (also called sonograms) map audio signals into 2-dimensional frequency-time space, and have long been used for studying animal vocalizations. In the book [Bird Song Research: The Past 100 Years](https://courses.washington.edu/ccab/Baker%20-%20100%20yrs%20of%20birdsong%20research%20-%20BB%202001.pdf)(@baker2001bird) Myron Baker describes how a device called the Sona-Graph™, developed by Kay Electric in 1948, began to be used by ornithologists in the early 1950s and accelerated avian bioacoustical research. 
+Spectrograms (also called sonograms) map audio signals into 2-dimensional frequency-time space and have long been used for studying animal vocalizations. In the book [Bird Song Research: The Past 100 Years](https://courses.washington.edu/ccab/Baker%20-%20100%20yrs%20of%20birdsong%20research%20-%20BB%202001.pdf)(@baker2001bird) Myron Baker describes how a device called the Sona-Graph™, developed by Kay Electric in 1948, began to be used by ornithologists in the early 1950s and accelerated avian bioacoustical research. 
 
 The project [DeepSqueak](https://github.com/DrCoffey/DeepSqueak)(@deepsqueak) at the University of Washington in Seattle uses machine learning to classify spectrograms of ultrasonic vocalizations of mice. Their publication in Nature, [DeepSqueak: a deep learning-based system for detection and analysis of ultrasonic vocalizations](https://www.nature.com/articles/s41386-018-0303-6)(@coffey2019deepsqueak), describes how a convolutional neural network was used to study correlations between types of vocalizations and specific behaviors. DeepSqueak uses a recurrent convolutional neural network (FasterR-CNN) with object region proposals that identify the locations (the time and frequency) of specific vocalizations. 
 
@@ -55,7 +55,7 @@ Final model performance is evaluated by first training the model chosen during t
 
 ## Data Exploration
 
-The included ipython notebook [Data Exploration](../notebooks/Data Exploration.ipynb) demonstrates use of the `load_data` method to load (and optionally download) the avian vocalizations dataset and includes some exploratory data visualizations. In order to verify that the dataset has a balanced number of samples per class, this distribution is shown in the following graph.
+The included ipython notebook [Data Exploration](../notebooks/Data Exploration.ipynb) demonstrates the use of the `load_data` method to load (and optionally download) the avian vocalizations dataset and includes some exploratory data visualizations. In order to verify that the dataset has a balanced number of samples per class, this distribution is shown in the following graph.
 
 ![Number of Audio Samples per Species](../notebooks/Data Exploration_files/Data Exploration_4_1.png){#fig:samples_per_species}
 
@@ -96,10 +96,10 @@ Most of the MFCC values are normally distributed and fall between -50 and 50, wi
 
 The [Data Exploration](../notebooks/Data Exploration.ipynb) notebook also calculates the aggregate pixel statistics across the entire dataset for both the log-scaled spectrograms as well as the MFCCs. Their values are shown in the table below and are used in the next section for data scaling. 
 
-Feature                    Pixel Count   Mean       Standard Deviation   
--------                  -------------  -----     --------------------   
-Log-scaled Spectrograms    412,313,856  -7.40798               3.80885                  
-MFCCs                       64,424,040  -19.00330             86.45496                 
+Feature                    Pixel Count   Mean       Standard Deviation   
+-------                  -------------  -----     --------------------   
+Log-scaled Spectrograms    412,313,856  -7.40798               3.80885                  
+MFCCs                       64,424,040  -19.00330             86.45496                 
 
 
 
@@ -116,7 +116,7 @@ A CNN is composed of two main building-blocks: Convolutional layers and Max Pool
 The neural network model is trained by minimizing a loss function using a process of Gradient Descent. The loss function is defined as the categorical cross-entropy between the model's predicted labels and the ground truth. The Gradient Descent algorithm repeatedly perturbs the weights of the network (i.e. the values of the filters) in a direction that minimizes the loss function. In particular, the derivative of the loss function with respect to each trainable parameter is calculated, and then each parameter is updated in an amount proportional to its derivative. 
 
 ### Regularization
-During model training, Dropout layers placed after each Max Pooling layer mask a specific proportion of the input values before passing them onto the next layer. Doing this helps with regularization by essentially forcing the model to develop alternative neural pathways. This in turn helps the model generalize better to unseen data. 
+During model training, Dropout layers placed after each Max Pooling layer mask a specific proportion of the input values before passing them onto the next layer. Doing this helps with regularization by essentially forcing the model to develop alternative neural pathways. This, in turn, helps the model generalize better to unseen data. 
 
 ### Data Augmentation
 To further help the model generalize to unseen data, a data generator is used which crops the input data using a set window length and a random temporal offset. This effectively augments the number of distinct training samples, and also conveniently standardizes the size of the input arrays. 
@@ -138,9 +138,9 @@ The data preprocessing methodology used to decode audio input files, generate sp
 
 The resulting arrays are stored as memory-mapped data files and saved in the Kaggle dataset [Avian Vocalizations: Spectrograms and MFCCs](https://www.kaggle.com/samhiatt/avian-vocalizations-spectrograms-and-mfccs). This dataset is automatically downloaded using the provided [load_data](../avian_vocalizations/data.py) method and is used as input to subsequent processing steps. 
 
-The [AudioFeatureGenerator](../avian_vocalizations/data.py) class provided in this repository is used to read the mem-mapped spectrograms and MFCCs, apply data scaling, and produce batches of equal-length normalized samples with one-hot encoded labels. It is mmodeled after [Afshine and Shervine Amidi's data generator example](https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly)(@amidi). The data generator optionally shuffles the samples, using a seed value to allow reproducibility. By one-hot encoding the labels, categorical classification is possible as this removes the ordinality of the encoded labels. 
+The [AudioFeatureGenerator](../avian_vocalizations/data.py) class provided in this repository is used to read the mem-mapped spectrograms and MFCCs, apply data scaling, and produce batches of equal-length normalized samples with one-hot encoded labels. It is modeled after [Afshine and Shervine Amidi's data generator example](https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly)(@amidi). The data generator optionally shuffles the samples, using a seed value to allow reproducibility. By one-hot encoding the labels, categorical classification is possible as this removes the ordinality of the encoded labels. 
 
-The data generator is also responsible for combining the spectrogram and MFCC inputs into a single 2-dimensional array by either concatenating the MFCCs to the top of the spectrograms, or by overwriting the lower frequency bands of the spectrograms with the MFCC data. Both of these approaches for combining the arrays were evaluated for performance.
+The data generator is also responsible for combining the spectrogram and MFCC inputs into a single 2-dimensional array by either concatenating the MFCCs to the top of the spectrograms or by overwriting the lower frequency bands of the spectrograms with the MFCC data. Both of these approaches for combining the arrays were evaluated for performance.
 
 In order to select a random window of a specified length from the input sample, the data generator randomly selects an offset for each sample (again using a seed value for reproducibility). If the input file is shorter than the crop window, then the output array is padded with the dataset mean pixel value, or 0 in the case of a normalized dataset. This choice for padding the samples has implications that are discussed in the results section. 
 
@@ -158,25 +158,25 @@ Notice that the MFCC arrays have been combined with the Spectrograms, overwritin
 
 ## Implementation
 
-A CNN model similar to the one used in the [dog species classifier](https://www.kaggle.com/samhiatt/udacity-dog-project-model-selection-and-tuning) Udacity project is implemented in [model.py](../avian_vocalizations/model.py) and also shown below. This model contains three stacks of 2-dimensional Convolution and Max Pooling layers followed by a Dropout layer. Convolutional layers use a ReLU activation function. The Dropout layer masks 20% of the input neurons from the Max Pooling layers. The output of these stacks is fed into a Gglobal Average Pooling layer, followed by a fully-connected layer with a softmax activation function. The position of the maximum value of this output array corresponds to the predicted label.
+A CNN model similar to the one used in the [dog species classifier](https://www.kaggle.com/samhiatt/udacity-dog-project-model-selection-and-tuning) Udacity project is implemented in [model.py](../avian_vocalizations/model.py) and also shown below. This model contains three stacks of 2-dimensional Convolution and Max Pooling layers followed by a Dropout layer. Convolutional layers use a ReLU activation function. The Dropout layer masks 20% of the input neurons from the Max Pooling layers. The output of these stacks is fed into a Global Average Pooling layer, followed by a fully-connected layer with a softmax activation function. The position of the maximum value of this output array corresponds to the predicted label.
 
 ```python
-    model = Sequential()
-    model.add(Conv2D(64, 3, padding='valid', activation="relu",
-                     input_shape=(128, 128, 1)))
-    model.add(MaxPooling2D(pool_size=3))
-    model.add(Dropout(rate=.2))
-    model.add(Conv2D(64, 3, padding='valid', activation="relu"))
-    model.add(MaxPooling2D(pool_size=3))
-    model.add(Dropout(rate=.2))
-    model.add(Conv2D(64, 3, padding='valid', activation="relu"))
-    model.add(MaxPooling2D(pool_size=3))
-    model.add(Dropout(rate=.2))
-    model.add(GlobalAveragePooling2D())
-    model.add(Dense(n_classes, activation="softmax"))
+    model = Sequential()
+    model.add(Conv2D(64, 3, padding='valid', activation="relu",
+                     input_shape=(128, 128, 1)))
+    model.add(MaxPooling2D(pool_size=3))
+    model.add(Dropout(rate=.2))
+    model.add(Conv2D(64, 3, padding='valid', activation="relu"))
+    model.add(MaxPooling2D(pool_size=3))
+    model.add(Dropout(rate=.2))
+    model.add(Conv2D(64, 3, padding='valid', activation="relu"))
+    model.add(MaxPooling2D(pool_size=3))
+    model.add(Dropout(rate=.2))
+    model.add(GlobalAveragePooling2D())
+    model.add(Dense(n_classes, activation="softmax"))
 ```
 
-Sklearn's [StratifiedShuffleSplit](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.StratifiedShuffleSplit.html) function is used to create 3 sets of validation data from the training data, and then each training split is used to train the network using the data generator implemented in [data.py](../avian_vocalizations/data.py). The [keras Sequence.fit_generator](https://keras.io/models/sequential/#fit_generator) method is used to train and evaluate the model after each training epoch using instances of the data generator. Evaluation is performed on a single batch containing all of the validation samples. The validation data generator does not shuffle the data, however it does still augment the data by producing different cropped windows for each epoch. 
+Sklearn's [StratifiedShuffleSplit](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.StratifiedShuffleSplit.html) function is used to create 3 sets of validation data from the training data, and then each training split is used to train the network using the data generator implemented in [data.py](../avian_vocalizations/data.py). The [keras Sequence.fit_generator](https://keras.io/models/sequential/#fit_generator) method is used to train and evaluate the model after each training epoch using instances of the data generator. Evaluation is performed on a single batch containing all of the validation samples. The validation data generator does not shuffle the data, however, it does still augment the data by producing different cropped windows for each epoch. 
 
 The included notebook [Data Generator and Training Example](../notebooks/Data Generator and Training Example.ipynb) demonstrates the training pipeline with cross-validation. Running it verifies that the model is able to retrieve batches from the training generator and evaluate accuracy against the validation data. This same structure is used to train and evaluate different versions of the model. The results of these experiments are reported in the next section.
 
@@ -185,9 +185,9 @@ The included notebook [Data Generator and Training Example](../notebooks/Data Ge
 
 Several different model configurations were trained and evaluated as ipython kernels on kaggle.com. It was observed, in general, that increasing the number of neurons per layer improved accuracy, as was expected.
 
-In an attempt to ensure that each clipped sample included identifiable vocalizations, frame filtering was implemented following the methodology presented in Edoardo Ferrante's notebook [Extract features with Librosa, predict with NB](https://www.kaggle.com/fleanend/extract-features-with-librosa-predict-with-nb)(@ferrante). However, after some initial experimentation it didn't seem to improve results. It was apparent that it resulted in many more short samples requiring padding and also removed information related to tempo, distorting many of the distinguishing characteristics of the vocalizations in the spectrograms. So this approach was abandoned.
+In an attempt to ensure that each clipped sample included identifiable vocalizations, frame filtering was implemented following the methodology presented in Edoardo Ferrante's notebook [Extract features with Librosa, predict with NB](https://www.kaggle.com/fleanend/extract-features-with-librosa-predict-with-nb)(@ferrante). However, after some initial experimentation, it didn't seem to improve results. It was apparent that it resulted in many more short samples requiring padding and also removed information related to tempo, distorting many of the distinguishing characteristics of the vocalizations in the spectrograms. So this approach was abandoned.
 
-Models with different kernel and max pooling sizes, including 1-row tall convolutional kernels and MaxPooling layers were tried out. In the notebook [Avian Vocalizations: CNN Classifier, Version 16](https://www.kaggle.com/samhiatt/avian-vocalizations-cnn-classifier/output?scriptVersionId=18872310) the model includes 64 filters for each convolutional layer and uses 1x4 convolutional kernels and max pooling sizes of 1x4, 1x3, and 1x2, respectively for each layer. It is evaluated on 3 splits for 100 epochs and achieves a score of: `0.0762`. This is not much of an improvement over the benchmark. 
+Models with different kernel and Max Pooling sizes, including 1-row tall convolutional kernels and MaxPooling layers were tried out. In the notebook [Avian Vocalizations: CNN Classifier, Version 16](https://www.kaggle.com/samhiatt/avian-vocalizations-cnn-classifier/output?scriptVersionId=18872310) the model includes 64 filters for each convolutional layer and uses 1x4 convolutional kernels and Max Pooling sizes of 1x4, 1x3, and 1x2, respectively for each layer. It is evaluated on 3 splits for 100 epochs and achieves a score of: `0.0762`. This is not much of an improvement over the benchmark. 
 
 In [Avian Vocalizations: CNN Classifier, Version 18](https://www.kaggle.com/samhiatt/avian-vocalizations-cnn-classifier/output?scriptVersionId=18878731) a similar model was evaluated, except with 3x3 convolutional kernels and 2x2 max pooling. It was trained on 3 splits to 100 epochs each and achieved a score of: `0.1238`. 
 
@@ -216,14 +216,14 @@ In the notebook [Model Inference and Testing](../notebooks/Model Inference and T
 
 The final test accuracy exceeds the accuracy evaluated during training. This was initially somewhat surprising; however, considering that the model was trained on the entire training dataset, as opposed to a subset of the training data used during cross-validation. Having more training samples is apparently improving the model's predictive power.
 
-To evaluate the sensitivity of the model, additional rounds of testing are done while altering the the seed value passed to the AudioDataGenerator. Changing the seed value will result in test data cropped with different time offsets. This is done five different times with the following results:
+To evaluate the sensitivity of the model, additional rounds of testing are done while altering the seed value passed to the AudioDataGenerator. Changing the seed value will result in test data cropped with different time offsets. This is done five different times with the following results:
 
-    Epoch 1 test accuracy: 0.24066
-    Epoch 2 test accuracy: 0.22418
-    Epoch 3 test accuracy: 0.22198
-    Epoch 4 test accuracy: 0.22198
-    Epoch 5 test accuracy: 0.23077
-    Mean test accuracy: 0.22791, Std. deviation: 0.00714
+    Epoch 1 test accuracy: 0.24066
+    Epoch 2 test accuracy: 0.22418
+    Epoch 3 test accuracy: 0.22198
+    Epoch 4 test accuracy: 0.22198
+    Epoch 5 test accuracy: 0.23077
+    Mean test accuracy: 0.22791, Std. deviation: 0.00714
 
 The model appears to be stable, consistently scoring around `0.23 +/- 0.0845`. 
 
@@ -232,7 +232,7 @@ The notebook [Model Inference and Testing](../notebooks/Model Inference and Test
 
 ## Justification
 
-The included notebook [Benchmark Model](../notebooks/Benchmark Model.ipynb) trains and tests a Gaussian Naive Bayes classifier using the AudioFeatureGenerator. While the benchmark model achieves a training score of `0.18297`, when evaluated aginst the test dataset its accuracy only reaches `0.05934`. The mean test accuracy of the CNN-based model was `0.22791`, outperforming the benchmark model by a factor of `3.8 X`. 
+The included notebook [Benchmark Model](../notebooks/Benchmark Model.ipynb) trains and tests a Gaussian Naive Bayes classifier using the AudioFeatureGenerator. While the benchmark model achieves a training score of `0.18297`, when evaluated against the test dataset its accuracy only reaches `0.05934`. The mean test accuracy of the CNN-based model was `0.22791`, outperforming the benchmark model by a factor of `3.8 X`. 
 
 To see a breakdown of how the predictor fares for each species, a confusion matrix is plotted in the notebook [Model Inference and Testing](../notebooks/Model Inference and Testing.ipynb) and shown in @Fig:confusion_matrix. 
 
@@ -246,7 +246,7 @@ To see if there is a correlation between the total duration of audio per class a
 
 ![Correlation: Accuracy and Total Duration of Audio](../notebooks/Model Inference and Testing_files/Model Inference and Testing_7_2.png){#fig:accuracy_correlation}
 
-@Fig:accuracy_correlation shows a slight negative correlation between the total duration of audio samples and the species class accuracy. The species with shorter samples in the collection end up with greater test accuracy. The `Elegant Tern` species appears to be an outlier. It's scoring 100%. It is also a species that is under-represented in terms of total duration of audio. This is further evidence of data leakage that should be fixed.
+@Fig:accuracy_correlation shows a slight negative correlation between the total duration of audio samples and the species class accuracy. The species with shorter samples in the collection end up with greater test accuracy. The `Elegant Tern` species appears to be an outlier. It's scoring 100%. It is also a species that is under-represented in terms of the total duration of audio. This is further evidence of data leakage that should be fixed.
 
 
 # Conclusion
@@ -269,7 +269,7 @@ Transfer learning could be also employed. An initial attempt was made in the ker
 
 However, It is anticipated that the best gains would result from addressing the data leakage issue presented by zero-padding missing values in short samples, identified in the reflections above. Modifying the generator to simply loop short clips to fill the window would be a simple technique that could address this. Additionally, balancing the training dataset during the data collection process by setting an appropriate lower limit for each audio clip duration would circumvent the need for padding.  
 
-Additionally, improving the data generator methods with appropriate frame filtering to ensure that each cropped sample contains an identifiable vocalization would likely improve predictor performance. Any frame filtering should ensure that any rhythmic features of vocalizations are not distorted, perhaps by setting a buffer around any retained frame. Exploration into more robust audio filtering and window selection methods would likely be rewarded with additional accuracy gains.
+Additionally, improving the data generator methods with appropriate frame filtering to ensure that each cropped sample contains an identifiable vocalization would likely improve predictor performance. Any frame filtering should ensure that any rhythmic features of vocalizations are not distorted, perhaps by setting a buffer around any retained frame. An exploration into more robust audio filtering and window selection methods would likely be rewarded with additional accuracy gains.
 
 The project DeepSqueak addresses this by using a recurrent convolutional neural network (FasterR-CNN) with object region proposals that identify the locations of the vocalizations in the spectrograms. The xeno-canto.org training data does not have object regions labeled and so it can not be readily used in the same way. However, an effort could be made to create such a training dataset with expert input helping to define the regions containing vocalizations. 
 
@@ -277,4 +277,3 @@ More experimentation could be done with the MFCCs. They could be used independen
 
 
 # References
-
