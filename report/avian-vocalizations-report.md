@@ -72,7 +72,7 @@ Looking at the class distribution in terms of the total duration of audio sample
 
 ## Data Visualization
 
-The [librosa](https://librosa.github.io/librosa/index.html) python library for audio analysis is used to load raw mp3 data and generate the features to be fed into the predictive model. Using librosa's [load](https://librosa.github.io/librosa/generated/librosa.core.load.html?highlight=load#librosa.core.load) method with default options automatically resamples the input audio to the default sampling rate of `22,050 samples/s`. This ensures that the temporal resolution of the spectrograms remains consistent across samples. 
+The [librosa](https://librosa.github.io/librosa/index.html) python library for audio analysis is used to load raw mp3 data and generate the features to be fed into the predictive model. Using librosa's [load](https://librosa.github.io/librosa/generated/librosa.core.load.html) method with default options automatically resamples the input audio to the default sampling rate of `22,050 samples/s`. This ensures that the temporal resolution of the spectrograms remains consistent across samples. 
 
 Librosa's [melspectrogram](https://librosa.github.io/librosa/generated/librosa.feature.melspectrogram.html) method generates spectrograms on the mel-frequency scale, representing the sound power of each frequency band at each time step in the sample. In @Fig:raw_melsg_XC17804 a mel-frequency power spectrogram generated from the first audio sample in the dataset is shown, along with a histogram showing the distribution of the power spectrogram values.
 
@@ -96,11 +96,10 @@ Most of the MFCC values are normally distributed and fall between -50 and 50, wi
 
 The [Data Exploration](../notebooks/Data Exploration.ipynb) notebook also calculates the aggregate pixel statistics across the entire dataset for both the log-scaled spectrograms as well as the MFCCs. Their values are shown in the table below and are used in the next section for data scaling. 
 
-Feature                    Pixel Count   Mean       Standard Deviation   
--------                  -------------  -----     --------------------   
-Log-scaled Spectrograms    412,313,856  -7.40798               3.80885                  
-MFCCs                       64,424,040  -19.00330             86.45496                 
-
+Feature                    Pixel Count     Mean     Standard Deviation
+-------                  ------------- --------   --------------------
+Log-scaled Spectrograms    412,313,856  -7.40798               3.80885
+MFCCs                       64,424,040  -19.00330             86.45496
 
 
 ## Algorithms and Techniques
