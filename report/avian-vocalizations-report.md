@@ -1,8 +1,8 @@
 ---
-title:    
-subtitle: Machine Learning Engineer Nanodegree Capstone Project  
-date:     Aug 15, 2019
-author: Sam Hiatt
+title:    Species Classification of Avian Vocalizations Using 2-Dimensional Convolutional Neural Networks
+subtitle: Udacity Machine Learning Engineer Nanodegree Capstone Project  
+date:     Feb 8, 2020
+author:   Sam Hiatt, samhiatt@gmail.com
 bibliography: bibliography.bib
 autoSectionLabels: true
 numbersections: true
@@ -12,10 +12,9 @@ listingTitle: Algorithm
 lstPrefixTemplate: $$listingTitle$$&nbsp;$$i$$
 csl: ieee.csl
 #abstract: |
-#    There's not much of an abstract here.
 header-includes:
-  - \usepackage{float}
-  - \floatplacement{figure}{H}
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
 ---
 
 
@@ -28,75 +27,89 @@ Many social animals communicate using vocalizations that can be used to identify
 
 [Xeno-Canto.org](https://www.xeno-canto.org/)(@xenocanto) is an online community and crowd-sourced Creative Commons database containing audio recordings of avian vocalizations from around the world, indexed by species. It presents a good opportunity for experimentation with machine learning for classification of audio signals. The [Xeno-Canto Avian Vocalizations CA/NV, USA](https://www.kaggle.com/samhiatt/xenocanto-avian-vocalizations-canv-usa)[@xc_ca_nv] dataset was procured for the purpose of jumpstarting exploration into this space. It contains a small subset of the available data, including 30 varying-length audio samples for each of 91 different bird species common in California and Nevada, USA.
 
-Spectrograms (also called sonograms) map audio signals into 2-dimensional frequency-time space, and have long been used for studying animal vocalizations. In the book [Bird Song Research: The Past 100 Years](https://courses.washington.edu/ccab/Baker%20-%20100%20yrs%20of%20birdsong%20research%20-%20BB%202001.pdf)(@baker2001bird) Myron Baker describes how a device called the Sona-Graph™, developed by Kay Electric in 1948, began to be used by ornithologists in the early 1950s and accelerated avian bioacoustical research. The project [DeepSqueak](https://github.com/DrCoffey/DeepSqueak)(@deepsqueak) at the University of Washington in Seattle applies deep learning for classifying audio recordings using spectrograms of ultrasonic vocalizations of mice. Their publication in Nature, [DeepSqueak: a deep learning-based system for detection and analysis of ultrasonic vocalizations](https://www.nature.com/articles/s41386-018-0303-6)(@coffey2019deepsqueak), shows how their classifier was used to study correlations between types of vocalizations and specific behaviors.
+Spectrograms (also called sonograms) map audio signals into 2-dimensional frequency-time space, and have long been used for studying animal vocalizations. In the book [Bird Song Research: The Past 100 Years](https://courses.washington.edu/ccab/Baker%20-%20100%20yrs%20of%20birdsong%20research%20-%20BB%202001.pdf)(@baker2001bird) Myron Baker describes how a device called the Sona-Graph™, developed by Kay Electric in 1948, began to be used by ornithologists in the early 1950s and accelerated avian bioacoustical research. 
 
-[Mel-frequency Cepstral Coefficients (MFCCs)](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum) also map audio signals into 2-dimensional space and are commonly used in voice recognition tasks. Inspired by the DeepSqueak's use of spectrograms as inputs to convolutional neural networks, this project uses spectrograms and MFCCs to train a classifier for avian vocalizations.
+The project [DeepSqueak](https://github.com/DrCoffey/DeepSqueak)(@deepsqueak) at the University of Washington in Seattle uses machine learning to classify spectrograms of ultrasonic vocalizations of mice. Their publication in Nature, [DeepSqueak: a deep learning-based system for detection and analysis of ultrasonic vocalizations](https://www.nature.com/articles/s41386-018-0303-6)(@coffey2019deepsqueak), describes how a convolutional neural network was used to study correlations between types of vocalizations and specific behaviors. DeepSqueak uses a recurrent convolutional neural network (FasterR-CNN) with object region proposals that identify the locations (the time and frequency) of specific vocalizations. 
+
+Inspired by the DeepSqueak's use of spectrograms as inputs to a convolutional neural network, this project takes a similar approach to classify recordings of avian vocalizations. As the XenoCanto.org dataset does not identify the locations of specific vocalizations in the audio samples, it is not viable to use the same Faster R-CNN architecture. A simple CNN is used instead.
+
 
 ## Problem Statement
 
-This project defines and trains a digital audio classifier to predict bird species when given an audio sample of avian vocalizations. 
+This project explores the use of 2-dimensional Convolutional Neural Networks for species classification of audio recordings containing avian vocalizations. Using a small subset of the available data from XenoCanto.org, a digital audio classifier is trained and evaluated for its ability to predict the common English name of the most prevalent bird species in a given mp3. 
 
-By taking a neural-network approach to  After being trained on a preprocessed dataset of labeled samples, the classifier will be able to read an mp3 file and return a single label representing the common English name of the most prevalent predicted species in the recording.
+By taking a neural network-based approach, this classifier is expected to be efficient in terms of its inference execution time as well as its memory and storage footprints. These factors should allow the model to run on a mobile phone, for example, without relying on a connection to the internet.
 
-This effort focuses on just a small subset of the available xeno-canto.org data. While many additional samples are available and could be used to improve the accuracy for any particular species of interest, or more species could be added, such refinement is left for future work.
+While many additional samples are available and could be used to improve predictive accuracy for any particular species of interest, or more target species could be added, such refinement is outside the scope of this effort.
+
 
 ## Metrics
 
 Performance is evaluated during model selection and training by calculating the [accuracy score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html) on a 3-fold cross-validation data split of the training data. Originally a 5-fold cross-validation was planned, but after some experimentation it was determined that using 3 folds was sufficient as results were stable between splits.
 
-Evaluation of accuracy gives equal weight to each class, considering them all equally important to identify, and is simply defined as the portion of samples correctly classified. So, for example, a model that correctly predicts the label (one out of 91 species) half of the time, would have a score of `0.50`. 
+Evaluation of accuracy is appropriate for a dataset with a balanced number of classes as it gives equal weight to each class, considering all species equally important to identify. Accuracy is defined simply as the portion of samples correctly classified. So, for example, a model that predicts the correct label (1 of 91 classes) half of the time would get a score of `0.50`. 
 
-Final model performance is evaluated by first training the best model chosen during the model selection phase on the entire training dataset (without cross-validation splits), and final test accuracy is evaluated by predicting labels on the designated test dataset and comparing it to their true values.
+Final model performance is evaluated by first training the model chosen during the model selection phase against the entire training dataset (without cross-validation splits), and final test accuracy is calculated by predicting labels on the designated test dataset and comparing it to their true values.
 
 # Analysis
 
 ## Data Exploration
 
-![Number of Audio Samples per Species](avian-vocalizations-report_files/avian-vocalizations-report_2_1.png){#fig:samples_per_species}
+The ipython notebook [Data Exploration](../notebooks/Data Exploration.ipynb) demonstrates use of the `load_data` method to load (and optionally download) the avian vocalizations dataset and includes some exploratory data visualizations. In order to verify that the dataset has a balanced number of samples per class, this distribution is shown in the following graph.
+
+![Number of Audio Samples per Species](../notebooks/Data Exploration_files/Data Exploration_4_1.png){#fig:samples_per_species}
 
 @Fig:samples_per_species shows that the dataset has a balanced distribution in terms of the number of samples per species, with 30 samples for each of 91 species.
 
-The fact that the number of samples per class is balanced is an important consideration as each species should be represented by recordings with a variety of different environmental conditions. If, say, a single sample was chopped up and used as multiple examples for training the model would likely end up overfitting to environmental factors specific to that recording, for example by picking up on the sound of a waterfall in the background instead of listening to the birds. Having a balanced number of samples per class should help regularize environmental factors like these. 
+The fact that the number of samples per class is balanced is an important consideration as each species should be represented by recordings with a variety of different environmental conditions. If, say, a single sample was chopped up and used to provide multiple samples for training, the model would likely end up overfitting to environmental factors specific to that recording. For example, it could become sensitive to the sound of a waterfall in the background instead of listening to the birds. Having a balanced number of recordings per class should help regularize environmental factors like these. 
 
-![Total Duration of Audio per Species](avian-vocalizations-report_files/avian-vocalizations-report_4_0.png){#fig:seconds_per_species}
+Looking at the class distribution in terms of the total duration of audio samples, it is apparent that each species is not equally represented in the dataset. 
 
-Looking at how the data is distributed in terms of the total duration of audio samples per class shows that each species is not equally represented in the dataset. @Fig:seconds_per_species shows that sample lengths range from 185 seconds to 1877 seconds of audio, with a mean of 80 seconds. This imbalance is due to the process used to compile the list of audio samples for each species. In particular, the 30 _shortest_ samples for each species recorded in California and Nevada were downloaded from xeno-canto.org, with the intention of reducing the load on the servers. This results in a dataset containing shorter samples for species that are more commonly recorded.  This will be an important consideration when evaluating model performance. 
+![Total Duration of Audio per Species](../notebooks/Data Exploration_files/Data Exploration_5_0.png){#fig:seconds_per_species}
 
-## Exploratory Visualization
-
-
-![XC119222.mp3: Abert's Towhee (Melozone aberti), contributed by: Ryan P. O'Donnell](avian-vocalizations-report_files/avian-vocalizations-report_7_6.png)
+@Fig:seconds_per_species shows that the total duration of audio samples for each species ranges from 3.1 minutes to 31.3 mins, with an average of 13.5 minutes. This imbalance is due to the process used when originally compiling the dataset. In particular, for each species the 30 _shortest_ samples recorded in California and Nevada were downloaded from xeno-canto.org, with the intention of reducing the load on the servers. This choice resulted in a dataset containing shorter samples for species that are more commonly recorded. This will be an important factor to consider when evaluating model accuracy. 
 
 
+## Data Visualization
 
-![XC79575.mp3: American Grey Flycatcher (Empidonax wrightii), contributed by: Ryan P. O'Donnell](avian-vocalizations-report_files/avian-vocalizations-report_7_7.png)
+The [librosa](https://librosa.github.io/librosa/index.html) python library for audio analysis is used to load raw mp3 data and generate the features to be fed into the predictive model. Using librosa's [load](https://librosa.github.io/librosa/generated/librosa.core.load.html?highlight=load#librosa.core.load) method with default options automatically resamples the input audio to the default sampling rate of `22,050 samples/s`. This ensures that the temporal resolution of the spectrograms remains consistent across samples. 
+
+Librosa's [melspectrogram](https://librosa.github.io/librosa/generated/librosa.feature.melspectrogram.html) method generates spectrograms on the mel-frequency scale, representing the sound power of each frequency band at each time step in the sample. In @Fig:raw_melsg_XC17804 a mel-frequency power spectrogram generated from the first audio sample in the dataset is shown, along with a histogram showing the distribution of the power spectrogram values.
+
+![Sound Power Spectrogram from XC17804.mp3: Abert's Towhee, contributed by Nathan Pieplow](../notebooks/Data Exploration_files/Data Exploration_9_0.png){#fig:raw_melsg_XC17804}
+
+It looks like the melspectrogram values have an exponential distribution. Log-scaling the values brings them closer to a normal distribution, as shown in @Fig:log_melsg_XC17804.
+
+![Log-Power Spectrogram from XC17804.mp3: Abert's Towhee, contributed by Nathan Pieplow](../notebooks/Data Exploration_files/Data Exploration_10_0.png){#fig:log_melsg_XC17804}
+
+The librosa library also provides the [mfcc](https://librosa.github.io/librosa/generated/librosa.feature.mfcc.html) method to produce [Mel-Frequency Cepstral Coefficients (MFCCs)](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum), another 2-dimensional representation of audio that is commonly used in voice recognition tasks. MFCCs for the first sample in the dataset are shown in @Fig:mfcc_XC17804.
+
+![Mel-Frequency Cepstral Coefficients from XC17804.mp3: Abert's Towhee, contributed by Nathan Pieplow](../notebooks/Data Exploration_files/Data Exploration_11_0.png){#fig:mfcc_XC17804}
+
+Taking a look at a few more samples, it appears that log-scaling the power spectrogram values does indeed bring them closer to a normal distribution and allows us to visualize the textures of the vocalizations.
+
+![XC119222.mp3: Abert's Towhee, contributed by: Ryan P. O'Donnell](../notebooks/Data Exploration_files/Data Exploration_14_2.png){#fig:xc119222}
+![XC79575.mp3: American Grey Flycatcher, contributed by: Ryan P. O'Donnell](../notebooks/Data Exploration_files/Data Exploration_14_5.png){#fig:xc79575}
+![XC79577.mp3: Ash-throated Flycatcher, contributed by: Ryan P. O'Donnell](../notebooks/Data Exploration_files/Data Exploration_14_8.png){#fig:xc79577}
+
+Most of the MFCC values are normally distributed and fall between -50 and 50, with the exception of the bottom row (the first coefficient) which has values that fall well below the rest, around -500.  
+
+The [Data Exploration](../notebooks/Data Exploration.ipynb) notebook also calculates the aggregate pixel statistics across the entire dataset for both the log-scaled spectrograms as well as the MFCCs. Their values are shown in the table below and are used in the next section for data scaling. 
+
+Feature                    Pixel Count   Mean       Standard Deviation   
+-------                  -------------  -----     --------------------   
+Log-scaled Spectrograms    412,313,856  -7.40798               3.80885                  
+MFCCs                       64,424,040  -19.00330             86.45496                 
 
 
-
-![XC79577.mp3: Ash-throated Flycatcher (Myiarchus cinerascens cinerascens), contributed by: Ryan P. O'Donnell](avian-vocalizations-report_files/avian-vocalizations-report_7_8.png)
-
-
-After visualizing the spectrograms it is clear that their values have an exponential distribution. Scaling them with `np.log()` allows us to visualize the textures of the vocalizations. 
-
-The MFCC values are mostly normally distributed, but it appears the bottom row has values that fall well below all the rest.  
-
-The mean pixel and standard deviation of the spectrogram, log(melspectrogram), and mfcc arays are calculed here. 
-
-
-
-    Total number of melspectrogram pixels: 412313856, mean: 0.29080, std. dev: 15.13515
-    log(melspectrogram_agg) mean: -7.34926, std. dev: 3.56474
-
-
-`   Total number of MFCC pixels: 64424040, mean: -19.00330, std. dev: 86.45496`
 
 ## Algorithms and Techniques
 
-The log scaled spectrograms produce visualizations with distinctive shapes and textures. The inherent interdependence of pixels that are near each other in the spectrogram makes it an appropriate task for a convolutional neural network as this essentially turns this problem into a classic image classification problem. A similar model to that which was used in the [dog species classifier](https://www.kaggle.com/samhiatt/udacity-dog-project-model-selection-and-tuning) project. This model seems to perform well when classifying images of dogs and using it should test the hypothesis that a CNN will perform better than the benchmark Naive Bayes model, and similarly, it will be trained using gradient descent. 
+The log scaled spectrograms produce visualizations with distinctive shapes and textures. The inherent interdependence of pixels that are near each other in the spectrogram makes it an appropriate task for a convolutional neural network as this essentially turns this problem into a classic image classification problem. A similar model to that which was used in the [Udacity dog species classifier](https://www.kaggle.com/samhiatt/udacity-dog-project-model-selection-and-tuning) project. This model seems to perform well when classifying images of dogs and using it should test the hypothesis that a CNN will perform better than the benchmark Naive Bayes model, and similarly, it will be trained using gradient descent. 
 
 The MFCC features contain information about the vocal characteristics of the frame. Adding them to the feature space can perhaps help improve predictions. Since they are correlated in time with the spectrogram, a convenience technique is applied to concatenate the two input arrays to produce a single 2-dimensional array for input to the CNN. 
 
-Data augmentation will be employed by using a data generator that crops samples from equal-length windows of input data with a random offset. 
+Data augmentation is employed by using a data generator that crops samples from equal-length windows of input data with a random offset. 
 
 In order to evaluate the performance of models during experimentation, experimental models are trained and evaluated on a 3-fold stratified and shuffled split to help evaluate stability and prevent model over-fitting. Final performance is evaluated by re-training the model on the entire training dataset and then evaluating against the test dataset. 
 
@@ -105,24 +118,22 @@ In order to evaluate the performance of models during experimentation, experimen
 
 ## Benchmark
 
-A purely random predictor would be correct 1.1% of the time (1/91 classes). A [Gaussian Naive Bayes classifier](https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.GaussianNB.html) applied to the spectrogram pixels should perform better than random guessing and is used as a benchmark predictor. It is expected that this predictor will become sensitive to certain frequency bands that are common in a particular species' vocalizations and that this will give it some predictive power. The naive assumption of feature independence is expected to limit this model's performance, but it should still provide a good baseline. 
+A purely random predictor would be correct 1.1% of the time (1/91 classes). A [Gaussian Naive Bayes classifier](https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.GaussianNB.html) applied to the scaled spectrogram pixels should perform better than random guessing and is used as a benchmark predictor. It is expected that this predictor will become sensitive to certain frequency bands that are common in a particular species' vocalizations and that this will give it some predictive power. The naive assumption of feature independence is expected to limit this model's performance, but it should still provide a good baseline. 
 
 
 # Methodology
 
 ## Data Preprocessing
 
-The Kaggle kernel [Avian Vocalizations: Data Preprocessing](https://www.kaggle.com/samhiatt/avian-vocalizations-data-preprocessing) documents the data preprocessing methodology used to decode audio input files, generate spectral features, calculate statistics, and then scale and normalize data. The same steps are taken for decoding and visualizing the samples in the Exploratory Visualization section above. 
+The data preprocessing methodology used to decode audio input files, generate spectral features, calculate statistics, and then scale and normalize data is documented in the Kaggle kernel [Avian Vocalizations: Data Preprocessing](https://www.kaggle.com/samhiatt/avian-vocalizations-data-preprocessing). This follows the same steps taken in the [Data Exploration](../notebooks/Data Exploration.ipynb) notebook, as decribed in the Exploratory Visualization section above. Mp3s are first decoded, then Mel-frequency spectrograms and MFCCs are computed using librosa. 
 
-Mp3s are first decoded and Spectrograms and MFCCs are computed using librosa. The resulting arrays are stored as memory-mapped data files and saved in the Kaggle dataset [Avian Vocalizations: Spectrograms and MFCCs](https://www.kaggle.com/samhiatt/avian-vocalizations-spectrograms-and-mfccs) and used as input for further processing steps. 
+The resulting arrays are stored as memory-mapped data files and saved in the Kaggle dataset [Avian Vocalizations: Spectrograms and MFCCs](https://www.kaggle.com/samhiatt/avian-vocalizations-spectrograms-and-mfccs). This dataset is used as input in subsequent processing steps. 
 
-Log scaling the spectrograms accounts for their exponential distribution, and normalization zero-centers the data, making it ready for input into a neural network. The dataset [Avian Vocalizations: Melspectrograms Log Norm](https://www.kaggle.com/samhiatt/avian-vocalizations-melspectrograms-log-norm) contains the scaled and normalized spectrograms preprocessed by calculating the `log`, subtracting the mean log scaled pixel (`mean(log(melspectrograms)) = -7.34926`, and dividing by the standard deviation (`std(log(melspectrogram)) = 3.56474`) This preprocessing is documented in the kernel [Fork of Avian Vocalizations: Data Transformation](https://www.kaggle.com/samhiatt/fork-of-avian-vocalizations-data-transformation?scriptVersionId=18761461) Use of this preprocessed data is optional as data scaling and normalization can alternatively be done in the data generation step.
-
-A data generator modeled after [Shervine Amidi's example](https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly) is used to read the mem-mapped spectrograms and MFCCs and produce optionally shuffled batches of equal-length normalized samples with one-hot encoded labels. A seed is used for shuffling to allow reproducibility. One-hot encoding the labels enables categorical classification as it removes the ordinality of the encoded labels. Normalization can be done in this step if the data on disk is not already normalized. This is the case with the MFCC data due to storage space errors encountered during Kaggle kernel execution. It's fast enough to do during data generation, so for convenience MFCC normalization is done in this phase. 
+The [AudioFeatureGenerator](../avian_vocalizations/data.py) class provided in the [avian_vocalizations](https://github.com/samhiatt/avian_vocalizations) code repository is used to read the mem-mapped spectrograms and MFCCs, apply data scaling, and produce batches of equal-length normalized samples with one-hot encoded labels. It is mmodeled after [Afshine and Shervine Amidi's data generator example](https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly)(@amidi). The data generator optionally shuffles the samples and uses a seed value to allow reproducibility. By one-hot encoding the labels, categorical classification is possible as this removes the ordinality of the encoded labels. 
 
 The data generator is also responsible for combining the spectrogram and MFCC inputs into a single 2-dimensional array by either concatenating the MFCCs to the top of the spectrograms, or by overwriting the lower frequency bands of the spectrograms with the MFCC data. Both of these approaches for combining the arrays were evaluated for performance.
 
-In order to select a random window of a specified length from the input sample, the data generator randomly selects (again using a seed, for reproducibility) a window offset for each sample. If the input file is shorter than the crop window then the output array is padded with the dataset mean pixel value, or 0 in the case of a normalized dataset. This choice for padding the samples has implications that are discussed in the results section. 
+In order to select a random window of a specified length from the input sample, the data generator randomly selects an   offset for each sample (again using a seed value for reproducibility). If the input file is shorter than the crop window, then the output array is padded with the dataset mean pixel value, or 0 in the case of a normalized dataset. This choice for padding the samples has implications that are discussed in the results section. 
 
 The dataset was first partitioned with [train_test_split](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html) reserving 1/3 of the dataset for testing, and again supplying a seed value for reproducibility. This output of this split is saved in the dataset [Avian Vocalizations: Partitioned Data](https://www.kaggle.com/samhiatt/avian-vocalizations-partitioned-data) and used for training / testing in subsequent steps. 
 
@@ -213,9 +224,9 @@ The model is able to retrieve batches from the training generator and evaluate a
 
 ## Refinement
 
-Several different model configurations were trained and evaluated. It was observed in general that increasing the number of neurons per layer improved accuracy, as was expected.
+Several different model configurations were trained and evaluated. It was observed, in general, that increasing the number of neurons per layer improved accuracy, as was expected.
 
-Frame filtering was implemented following the methodology presented in Edoardo Ferrante's notebook [Extract features with Librosa, predict with NB](https://www.kaggle.com/fleanend/extract-features-with-librosa-predict-with-nb), however after some initial experimentation it didn't seem to improve results. It was apparent that it resulted in many more short samples requiring padding and also removed information related to tempo, distorting many of the distinguishing characteristics of the vocalizations in the spectrograms. So this approach was abandoned.
+In an attempt to ensure that each clipped sample included identifiable vocalizations, frame filtering was implemented following the methodology presented in Edoardo Ferrante's notebook [Extract features with Librosa, predict with NB](https://www.kaggle.com/fleanend/extract-features-with-librosa-predict-with-nb)(@ferrante). However, after some initial experimentation it didn't seem to improve results. It was apparent that it resulted in many more short samples requiring padding and also removed information related to tempo, distorting many of the distinguishing characteristics of the vocalizations in the spectrograms. So this approach was abandoned.
 
 Models with different kernel and max pooling sizes, including 1-row tall convolutional kernels and MaxPooling layers were tried. The hypothesis was that the pitch of each vocalization is important and that convolution applied only to the time dimension might preserve these frequencies. This approach was tried and evaluated in the notebook [Version 16: CNN Classifier](https://www.kaggle.com/samhiatt/avian-vocalizations-cnn-classifier/output?scriptVersionId=18872310). This model includes 64 filters for each convolutional layer and uses 1x4 convolutional kernels and max pooling sizes of 1x4, 1x3, and 1x2, respectively for each layer. It is evaluated on 3 splits for 100 epochs and achieves a score of: `0.0762`. Not much better than the benchmark. 
 
@@ -227,6 +238,7 @@ All of the versions above use a generator that concatenates the MFCCs to the top
 
 Shown below are the learning curves from the output of this training session. The minimum loss is achieved after about 80-100 epochs, and this point is indicated in the plots with a red vertical line. 
 
+TODO: Show training curves
 
 
 # Results

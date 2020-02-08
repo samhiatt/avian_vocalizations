@@ -15,7 +15,7 @@ def show_sample(melsg, file_id=None, label="", offset=0, data_dir='data', load_c
     gs = GridSpec(4, 1, fig, hspace=.1, wspace=0, top=.93)
     melsg_ax = fig.add_subplot(gs[0:3])
     specshow(melsg.squeeze(), y_axis='mel', vmin=-3, vmax=3, ax=melsg_ax)
-    plt.colorbar(melsg_ax.collections[0], ax=melsg_ax, pad=.01)
+    plt.colorbar(melsg_ax.collections[0], ax=melsg_ax, pad=.01, format='%+2.0f dB')
     #mfcc_ax = fig.add_subplot(gs[3])
     #specshow(mfcc.squeeze(), ax=mfcc_ax, x_axis='s')
     #mfcc_ax.set_ylabel("MFCC")
@@ -42,29 +42,33 @@ def vis_sample_with_histograms(sample, data_dir='data'):
     mfcc = librosa.feature.mfcc(data, sr=sr, hop_length=hop_length, n_fft=2048, fmin=fmin)
     fig = plt.figure(figsize=(15,5)); #plt.subplots_adjust(hspace=4)
     cols = GridSpec(1,2, fig) # get a grid of 1 row x 2 cols
-    left_col = GridSpecFromSubplotSpec(3,1,subplot_spec=cols[0], hspace=1)
-    right_col = GridSpecFromSubplotSpec(5,1,subplot_spec=cols[1], hspace=3)
+    hist_col = GridSpecFromSubplotSpec(5,1,subplot_spec=cols[1], hspace=3)
+    feature_col = GridSpecFromSubplotSpec(5,1,subplot_spec=cols[0], hspace=3)
     fig.suptitle("%s: %s"%(sample.file_name, sample.full_name))
-    hist_ax1 = fig.add_subplot(left_col[0], xlabel="Power",
-                               title="Histogram of Melspectrogram Pixels")
-    hist_ax2 = fig.add_subplot(left_col[1], xlabel="log(Power)",
-                               title="Histogram of log(Melspectrogram)")
-    mfcc_hist_ax = fig.add_subplot(left_col[2], xlabel="MFCC",
-                               title="Histogram of MFCC Pixels")
-    melsg_ax = fig.add_subplot(right_col[:3])
-    mfcc_ax = fig.add_subplot(right_col[3:])
-    hist_ax1.hist(melsg.flatten(), bins=100)
+    #hist_ax1 = fig.add_subplot(hist_col[0], xlabel="Power", ylabel="count",
+#                           title="Histogram of Melspectrogram Pixels")
+    hist_ax2 = fig.add_subplot(hist_col[1:3], xlabel="log(Power(W))", ylabel="count",
+                               title="Histogram of Log-Power Values")
+    mfcc_hist_ax = fig.add_subplot(hist_col[3:5], xlabel="Mel-Frequency Cepstral Coefficient", ylabel="count",
+                               title="Histogram of MFCC Values")
+    melsg_ax = fig.add_subplot(feature_col[:3])
+    mfcc_ax = fig.add_subplot(feature_col[3:])
+    #hist_ax1.hist(melsg.flatten(), bins=100)
     hist_ax2.hist(np.log(melsg.flatten()), bins=100)
     mfcc_hist_ax.hist(mfcc.flatten(), bins=100)
     specshow(np.log(melsg), y_axis='mel', x_axis='s', ax=melsg_ax, fmin=fmin,
+    #specshow(librosa.power_to_db(melsg), y_axis='mel', x_axis='s', ax=melsg_ax, fmin=fmin,
              hop_length=hop_length, sr=sr)
 #     specshow(librosa.amplitude_to_db(melsg[50:,:], ref=np.max), y_axis='mel', x_axis='s', ax=melsg_ax, 
 #              hop_length=hop_length, sr=sr, fmin=1376)
-    melsg_ax.set_title("log(Melspectrogram)")
-    plt.colorbar(melsg_ax.get_children()[0], ax=melsg_ax)
+    melsg_ax.set_title("Mel-Frequency Spectrogram")
+    cb = plt.colorbar(melsg_ax.get_children()[0], ax=melsg_ax)
+    cb.set_label("log(Power(W))")
     specshow(mfcc, x_axis='s', ax=mfcc_ax, fmin=fmin, 
              hop_length=hop_length, sr=sr)
-    mfcc_ax.set_title("Mel-frequency Cepstral Coefficients")
+    mfcc_ax.set_title("Mel-Frequency Cepstral Coefficients")
+    mfcc_ax.set_ylabel("Coefficient")
+    mfcc_ax.set_yticks([0, 5, 10, 15, 20])
     plt.colorbar(mfcc_ax.get_children()[0], ax=mfcc_ax);
     display(fig)
     plt.close('all')
