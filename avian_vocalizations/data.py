@@ -12,7 +12,6 @@ data_urls=[
     "https://xeno-canto-ca-nv.s3.amazonaws.com/avian-vocalizations-partitioned-data.zip",
     "https://xeno-canto-ca-nv.s3.amazonaws.com/xenocanto-avian-vocalizations-canv-usa.zip",
     "https://xeno-canto-ca-nv.s3.amazonaws.com/avian-vocalizations-spectrograms-and-mfccs.zip",
-    "https://xeno-canto-ca-nv.s3.amazonaws.com/Avian_Vocalizations_CNN_train_and_test_results.zip",
 ]
 train_index_filename = 'train_file_ids.csv'
 
