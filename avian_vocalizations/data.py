@@ -77,7 +77,7 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
         melsg_arr = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
         mfcc_arr = np.empty((len(list_file_ids_temp), 20, self.n_frames, self.n_channels))
-        X = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
+        #X = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
         y = np.empty((len(list_file_ids_temp), self.n_classes), dtype=int) # one-hot encoded labels
         #offsets = np.empty(len(list_file_ids_temp))
 
@@ -106,9 +106,9 @@ class AudioFeatureGenerator(keras.utils.Sequence):
             melsg_arr[i,] = melsg_lognorm_cropped.reshape(1,128,self.n_frames,1)
             mfcc_arr[i,] = mfcc_cropped.reshape(1,20,self.n_frames,1)
             
-            X[i,] = melsg_lognorm_cropped.reshape(1,128,self.n_frames,1)
+            #X[i,] = melsg_lognorm_cropped.reshape(1,128,self.n_frames,1)
             # Overwrite the bottom of X with MFCCs (we don't need the low frequency bands anyway) 
-            X[i,:20] = mfcc_cropped.reshape(1,20,self.n_frames,1)
+            #X[i,:20] = mfcc_cropped.reshape(1,20,self.n_frames,1)
             
             y[i,] = to_categorical(self.labels_by_id[file_id], num_classes=self.n_classes)
 
@@ -116,12 +116,12 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         if self.verbose:
             print("Generated batch #%i/%i."%(batch_index+1,self.n_batches))
             sys.stdout.flush()
-        return X, y
-#         return {'melsg':melsg_arr, 
-#                 'mfcc':mfcc_arr, 
-#                 'id':list_file_ids_temp,
-#                 'offset':offsets,
-#                }, y
+#        return X, y
+        return {'melsg':melsg_arr, 
+                 'mfcc':mfcc_arr, 
+                 'id':list_file_ids_temp,
+                 #'offset':offsets,
+                }, y
 
 class DataDirNotFound(Exception):
     """ Raised when data dir is not found. Suggests downloading by calling `load_data(download_data=True)`.
