@@ -4,6 +4,7 @@ Machine learning model for classifying audio recordings of avian vocalizations b
 
 See the report [here](/report/avian-vocalizations-report.pdf).
 
+
 ## Setup
 
 ### Installation
