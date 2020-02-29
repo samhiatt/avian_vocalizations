@@ -4,8 +4,8 @@ import sys
 import warnings
 import wget
 from zipfile import ZipFile
-
 import keras
+import librosa
 import numpy as np
 import pandas as pd
 from keras.utils import to_categorical
@@ -19,6 +19,32 @@ data_urls = [
     "https://xeno-canto-ca-nv.s3.amazonaws.com/avian-vocalizations-spectrograms-and-mfccs.zip",
 ]
 train_index_filename = 'train_file_ids.csv'
+
+
+def preprocess(file_path, sr=44100, fmin=500, fmax=12000, hop_length=256, n_fft=2048):
+    """Read mp3 file and compute audio features
+    Args:
+        file_path (str): path to mp3 file to load
+        sr (int): sample rate
+        fmin (int): minimum frequency
+        fmax (int): maximum frequency
+        hop_length (int): number of audio samples between adjacent STFT columns
+        n_fft (int): length of the windowed signal after padding with zeros, passed to `librosa.feature.melspectrogram`
+                     and `librosa.feature.mfcc`.
+    Returns:
+        Mel-frequency spectrogram and MFCC arrays
+    """
+    data, sr = librosa.load(file_path, sr=sr)
+    msg_args = dict(y=data, sr=sr, n_fft=n_fft, hop_length=hop_length, fmin=fmin, fmax=fmax)
+    print("msg args:", msg_args, msg_args['y'].shape)
+    msg = librosa.feature.melspectrogram(**msg_args)
+    msg_db = librosa.power_to_db(msg, ref=np.max)
+    print("Spectrogram shape:", msg.shape)
+
+    mfcc = librosa.feature.mfcc(**msg_args)
+    print("MFCC shape:", mfcc.shape)
+
+    return msg_db, mfcc
 
 
 # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
@@ -47,6 +73,7 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         self.n_channels = n_channels
         self.shuffle = shuffle
         self.seed = seed
+        self.indexes = np.arange(len(self.list_file_ids))
         self.verbose = verbose
         self.on_epoch_end()
 
@@ -66,17 +93,17 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         """Generate one batch of data"""
         if index >= len(self):
             raise IndexError("Requested batch index %i on generator with only %i batches." % (index, len(self)))
-        # indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
-        indexes = np.arange(self.batch_size)[index*self.batch_size:(index+1)*self.batch_size]
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        # indexes = np.arange(self.batch_size)[index*self.batch_size:(index+1)*self.batch_size]
         list_file_ids_temp = [self.list_file_ids[k] for k in indexes]
         return self.__data_generation(list_file_ids_temp, index)
 
     def on_epoch_end(self):
         """Update indexes, to be called after each epoch"""
+        self.seed = self.seed+self.batch_size  # increment the seed so we get a different batch.
         if self.shuffle:
-            # np.random.seed(self.seed)
-            self.seed = self.seed+self.batch_size  # increment the seed so we get a different batch.
-            # np.random.shuffle(self.indexes)
+            np.random.seed(self.seed)
+            np.random.shuffle(self.indexes)
 
     def __data_generation(self, list_file_ids_temp, batch_index):
         """Generates data containing batch_size samples"""
@@ -84,7 +111,7 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         mfcc_arr = np.empty((len(list_file_ids_temp), 20, self.n_frames, self.n_channels))
         # X = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
         y = np.empty((len(list_file_ids_temp), self.n_classes), dtype=int)  # one-hot encoded labels
-        # offsets = np.empty(len(list_file_ids_temp))
+        offsets = np.empty(len(list_file_ids_temp))
 
         for i, file_id in enumerate(list_file_ids_temp):
             melsg = get_melsg_array(self.index_df, file_id)
@@ -94,38 +121,30 @@ class AudioFeatureGenerator(keras.utils.Sequence):
             mfcc = self.mfcc_scaler.transform(mfcc)
 
             # Pick a random window from the sound file
-            d_len = mfcc.shape[1] - self.n_frames
-            np.random.seed(self.seed+i)
-            if d_len < 0:  # Clip is shorter than window, so pad with mean value.
-                n = int(np.random.uniform(0, -d_len))
-                pad_range = (n, -d_len-n)  # pad with n values on the left, clip_length - n values on the right
-#                 melsg_cropped = np.pad(melsg, ((0,0), pad_range), 'constant', constant_values=melsg.mean())
-                melsg_lognorm_cropped = np.pad(melsg_lognorm, ((0, 0), pad_range), 'constant', constant_values=0)
-                mfcc_cropped = np.pad(mfcc, ((0, 0), pad_range), 'constant', constant_values=0)
-            else:  # Clip is longer than window, so slice it up
-                n = int(np.random.uniform(0, d_len))
-#                 melsg_cropped = melsg[:, n:(n+self.n_frames)]
-                melsg_lognorm_cropped = melsg_lognorm[:, n:(n+self.n_frames)]
-                mfcc_cropped = mfcc[:, n:(n+self.n_frames)]
-            # offsets[i,] = n
-            melsg_arr[i, ] = melsg_lognorm_cropped.reshape((1, 128, self.n_frames, 1))
+            np.random.seed(self.seed + i)
+            offset = int(np.random.uniform(0, mfcc.shape[1]))
+            mfcc_cropped = mfcc[:, offset:offset + self.n_frames]
+            msg_lognorm_cropped = melsg_lognorm[:, offset:offset + self.n_frames]
+            for j in range(int(np.ceil(self.n_frames / mfcc.shape[1]))):
+                # mfcc_cropped = np.hstack([mfcc_cropped, mfcc])[:, :self.n_frames]
+                mfcc_cropped = np.concatenate([mfcc_cropped, mfcc], axis=1)[:, :self.n_frames]
+                # msg_lognorm_cropped = np.hstack[msg_lognorm_cropped, melsg_lognorm][:, :self.n_frames]
+                msg_lognorm_cropped = np.concatenate([msg_lognorm_cropped, melsg_lognorm], axis=1)[:, :self.n_frames]
+
+            offsets[i, ] = offset
+            melsg_arr[i, ] = msg_lognorm_cropped.reshape((1, 128, self.n_frames, 1))
             mfcc_arr[i, ] = mfcc_cropped.reshape((1, 20, self.n_frames, 1))
-
-            # X[i,] = melsg_lognorm_cropped.reshape(1,128,self.n_frames,1)
-            # Overwrite the bottom of X with MFCCs (we don't need the low frequency bands anyway) 
-            # X[i,:20] = mfcc_cropped.reshape(1,20,self.n_frames,1)
-
+            # X[i,] = msg_lognorm_cropped.reshape(1,128,self.n_frames,1)
             y[i, ] = to_categorical(self.labels_by_id[file_id], num_classes=self.n_classes)
 
 #         print("Generated batch with input shapes ",(melsg_arr.shape, mfcc_arr.shape))
         if self.verbose:
             print("Generated batch #%i/%i." % (batch_index+1, self.n_batches))
             sys.stdout.flush()
-#        return X, y
         return {'melsg': melsg_arr,
                 'mfcc': mfcc_arr,
                 'id': list_file_ids_temp,
-                # 'offset': offsets,
+                'offset': offsets,
                 }, y
 
 
