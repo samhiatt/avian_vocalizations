@@ -1,6 +1,7 @@
 !.gitignore
 .*
-data/
+data/audio/
+data/features/
 *.zip
 __pycache__
 *.egg-info

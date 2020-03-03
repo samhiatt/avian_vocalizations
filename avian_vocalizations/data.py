@@ -21,7 +21,7 @@ data_urls = [
 train_index_filename = 'train_file_ids.csv'
 
 
-def preprocess(file_path, sr=44100, fmin=500, fmax=12000, hop_length=256, n_fft=2048):
+def preprocess(file_path, sr=44100, fmin=500, fmax=15000, hop_length=256, n_fft=2048):
     """Read mp3 file and compute audio features
     Args:
         file_path (str): path to mp3 file to load
