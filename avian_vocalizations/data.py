@@ -3,6 +3,7 @@ import re
 import sys
 import warnings
 import wget
+import json
 from zipfile import ZipFile
 import keras
 import librosa
@@ -10,6 +11,7 @@ import numpy as np
 import pandas as pd
 from keras.utils import to_categorical
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
 
 warnings.simplefilter('ignore', FutureWarning)
 
@@ -21,7 +23,54 @@ data_urls = [
 train_index_filename = 'train_file_ids.csv'
 
 
-def preprocess(file_path, sr=44100, fmin=500, fmax=15000, hop_length=256, n_fft=2048):
+def get_file_path(filename, data_dir=None):
+    if data_dir is None:
+        data_dir = '%s/../data' % os.path.dirname(__file__)
+    return "%s/%s" % (data_dir, filename)
+
+
+def get_stats(data_dir=None, filename=None):
+    if filename is None:
+        filename = 'training_dataset_statistics.json'
+    fn = get_file_path(filename, data_dir)
+    with open(fn) as f:
+        return json.load(f)
+
+
+def get_index_df(data_dir=None, filename=None):
+    if filename is None:
+        filename = 'xeno-canto_ca-nv_stats.csv'
+    return pd.read_csv(get_file_path(filename, data_dir), index_col='file_id')
+
+
+def get_training_df(data_dir=None, train_filename='train_file_ids.csv',
+                    index_filename=None):
+    index_df = get_index_df(data_dir, index_filename)
+    train_df = pd.read_csv(get_file_path(train_filename, data_dir))
+    return index_df.loc[train_df['file_id']]
+
+
+def get_label_encoder(data_dir=None, index_filename=None):
+    df = get_index_df(data_dir, index_filename)
+    return LabelEncoder().fit(df['english_cname'])
+
+
+def scale_features(meldb, mfcc, stats_filename):
+    stats = get_stats()
+    mfcc_mean = np.array(stats['mfcc_mean'])
+    mfcc_std = np.array(stats['mfcc_std'])
+    # print(mfcc_mean.shape, mfcc.shape)
+    mfcc -= mfcc_mean.reshape(-1, 1)
+    # print(mfcc.shape, mfcc_mean.shape, mfcc_std.shape)
+    mfcc /= mfcc_std.reshape(-1, 1)
+    meldb_mean = np.array(stats['meldb_mean'])
+    meldb_std = np.array(stats['meldb_std'])
+    meldb -= meldb_mean.reshape(-1, 1)
+    meldb /= meldb_std.reshape(-1, 1)
+
+
+def preprocess(file_path, sr=44100, fmin=500, fmax=15000, hop_length=256, n_fft=2048, scale=False,
+               include_meldb=True, include_mfcc=True):
     """Read mp3 file and compute audio features
     Args:
         file_path (str): path to mp3 file to load
@@ -31,27 +80,40 @@ def preprocess(file_path, sr=44100, fmin=500, fmax=15000, hop_length=256, n_fft=
         hop_length (int): number of audio samples between adjacent STFT columns
         n_fft (int): length of the windowed signal after padding with zeros, passed to `librosa.feature.melspectrogram`
                      and `librosa.feature.mfcc`.
+        scale (bool): Whether or not to scale data using dataset statistics. (default: False)
+        include_meldb (bool): Whether or not to include mel-spectrogram in output. (default: True)
+        include_mfcc (bool): Whether or not to include mfcc in output. (default: True)
     Returns:
         Mel-frequency spectrogram and MFCC arrays
     """
+    import warnings; warnings.simplefilter('ignore')
     data, sr = librosa.load(file_path, sr=sr)
     msg_args = dict(y=data, sr=sr, n_fft=n_fft, hop_length=hop_length, fmin=fmin, fmax=fmax)
-    print("msg args:", msg_args, msg_args['y'].shape)
+    # print("msg args:", msg_args, msg_args['y'].shape)
     msg = librosa.feature.melspectrogram(**msg_args)
-    msg_db = librosa.power_to_db(msg, ref=np.max)
-    print("Spectrogram shape:", msg.shape)
+    meldb = librosa.power_to_db(msg, ref=np.max)
+    # print("Spectrogram shape:", msg.shape)
 
     mfcc = librosa.feature.mfcc(**msg_args)
-    print("MFCC shape:", mfcc.shape)
+    # print("MFCC shape:", mfcc.shape)
 
-    return msg_db, mfcc
+    if scale:  # Do band-wise feature scaling
+        scale_features(meldb, mfcc)
+
+    res = []
+    if include_meldb:
+        res.append(meldb)
+    if include_mfcc:
+        res.append(mfcc)
+    return tuple(res)
 
 
 # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class AudioFeatureGenerator(keras.utils.Sequence):
     """Generates data for Keras"""
     def __init__(self, list_file_ids, labels, batch_size, n_frames=128, n_channels=1,
-                 data_dir='data', shuffle=False, seed=0, n_classes=None, verbose=False):
+                 data_dir='data', scale=False, index_df_filename=None, stats_filename=None,
+                 shuffle=False, seed=0, n_classes=None, verbose=False):
         """ Initialize a data generator with the list of labeled `file_id`s.
         Args
             list_file_ids (list[int]): A list of `file_id`s to be included in this generator.
@@ -60,6 +122,11 @@ class AudioFeatureGenerator(keras.utils.Sequence):
             n_frames (int): Number of audio frames per sample (sample length). (default: 128)
             n_channels (int): Number of channels. (for compatibility with image generators) (default: 1)
             data_dir (str): Path to directory containing data downloaded from `_download_data`.
+            scale (bool): Whether or not to scale the data. (default: False)
+            index_df_filename (str): Csv file in `data_dir` with dataset index. If `None` then uses
+                                     default defined in `get_index_df`.
+            stats_filename (str): Json file in `data_dir` with training dataset statistics. If `None`
+                                     then uses default defined in `get_stats`.
             shuffle (bool): Whether or not to shuffle the data index between batches.
             seed (int): Seed for `numpy.random.RandomState`.
             n_classes (int): Number of classes (distinct labels) in dataset. (default: `labels.max()-labels.min()+1`)
@@ -76,10 +143,13 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         self.indexes = np.arange(len(self.list_file_ids))
         self.verbose = verbose
         self.on_epoch_end()
-
-        self.index_df, self.shapes_df, self.train_df, self.test_df = load_data(data_dir)
-        self.melsg_scaler, self.melsg_log_scaler, self.mfcc_scaler = get_scalers(
-            self.index_df.loc[self.train_df.index], data_dir)
+        self.data_dir = data_dir
+        self.stats = get_stats(data_dir, stats_filename)
+        self.scale = scale
+        self.index_df = get_index_df(self.data_dir, index_df_filename)
+        # self.index_df, self.shapes_df, self.train_df, self.test_df = load_data(data_dir)
+        # self.melsg_scaler, self.melsg_log_scaler, self.mfcc_scaler = get_scalers(
+        #     self.index_df.loc[self.train_df.index], data_dir)
 
     @property
     def n_batches(self):
@@ -114,25 +184,31 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         offsets = np.empty(len(list_file_ids_temp))
 
         for i, file_id in enumerate(list_file_ids_temp):
-            melsg = get_melsg_array(self.index_df, file_id)
-            melsg_lognorm = self.melsg_log_scaler.transform(np.log(melsg, out=np.zeros(melsg.shape), where=melsg > 0))
+            # melsg = get_melsg_array(self.index_df, file_id)
+            # melsg_lognorm = self.melsg_log_scaler.transform(np.log(melsg, out=np.zeros(melsg.shape), where=melsg > 0))
 
+            # mfcc = get_mfcc_array(self.index_df, file_id)
+            # mfcc = self.mfcc_scaler.transform(mfcc)
+
+            meldb = get_melsg_array(self.index_df, file_id)
             mfcc = get_mfcc_array(self.index_df, file_id)
-            mfcc = self.mfcc_scaler.transform(mfcc)
 
             # Pick a random window from the sound file
             np.random.seed(self.seed + i)
             offset = int(np.random.uniform(0, mfcc.shape[1]))
             mfcc_cropped = mfcc[:, offset:offset + self.n_frames]
-            msg_lognorm_cropped = melsg_lognorm[:, offset:offset + self.n_frames]
+            #msg_lognorm_cropped = melsg_lognorm[:, offset:offset + self.n_frames]
+            meldb_cropped = meldb[:, offset:offset + self.n_frames]
             for j in range(int(np.ceil(self.n_frames / mfcc.shape[1]))):
                 # mfcc_cropped = np.hstack([mfcc_cropped, mfcc])[:, :self.n_frames]
                 mfcc_cropped = np.concatenate([mfcc_cropped, mfcc], axis=1)[:, :self.n_frames]
                 # msg_lognorm_cropped = np.hstack[msg_lognorm_cropped, melsg_lognorm][:, :self.n_frames]
-                msg_lognorm_cropped = np.concatenate([msg_lognorm_cropped, melsg_lognorm], axis=1)[:, :self.n_frames]
+                #msg_lognorm_cropped = np.concatenate([msg_lognorm_cropped, melsg_lognorm], axis=1)[:, :self.n_frames]
+                meldb_cropped = np.concatenate([meldb, meldb_cropped], axis=1)[:, :self.n_frames]
 
             offsets[i, ] = offset
-            melsg_arr[i, ] = msg_lognorm_cropped.reshape((1, 128, self.n_frames, 1))
+            #melsg_arr[i, ] = msg_lognorm_cropped.reshape((1, 128, self.n_frames, 1))
+            melsg_arr[i, ] = meldb_cropped.reshape((1, 128, self.n_frames, 1))
             mfcc_arr[i, ] = mfcc_cropped.reshape((1, 20, self.n_frames, 1))
             # X[i,] = msg_lognorm_cropped.reshape(1,128,self.n_frames,1)
             y[i, ] = to_categorical(self.labels_by_id[file_id], num_classes=self.n_classes)
@@ -222,14 +298,16 @@ def load_data(data_dir='data', download_data=False):
 
 def get_mfcc_array(df, file_id):
     rec = df.loc[file_id]
-    return np.memmap(rec.get('mfcc_path'), dtype='float32', mode='readonly',
-                     shape=(20, rec.get('n_frames')))
+    shape = (20, int(rec['feature_length']))
+    return np.memmap('../data/%s' % (rec['mfcc_path']), dtype='float32', mode='readonly',
+                     shape=shape)
 
 
 def get_melsg_array(df, file_id):
     rec = df.loc[file_id]
-    return np.memmap(rec.get('melspectrogram_path'), dtype='float32', mode='readonly',
-                     shape=(128, rec.get('n_frames')))
+    shape = (128, int(rec['feature_length']))
+    return np.memmap('../data/%s' % (rec['melsg_path']), dtype='float32', mode='readonly',
+                     shape=shape)
 
 
 def _download_data(data_dir='data', keep_zip=True):
