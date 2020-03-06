@@ -113,7 +113,8 @@ class AudioFeatureGenerator(keras.utils.Sequence):
     """Generates data for Keras"""
     def __init__(self, list_file_ids, labels, batch_size, n_frames=128, n_channels=1,
                  data_dir='data', scale=False, index_df_filename=None, stats_filename=None,
-                 shuffle=False, seed=0, n_classes=None, verbose=False):
+                 shuffle=False, seed=0, n_classes=None, verbose=False,
+                 include_mfcc=True, include_melsg=True):
         """ Initialize a data generator with the list of labeled `file_id`s.
         Args
             list_file_ids (list[int]): A list of `file_id`s to be included in this generator.
@@ -131,6 +132,8 @@ class AudioFeatureGenerator(keras.utils.Sequence):
             seed (int): Seed for `numpy.random.RandomState`.
             n_classes (int): Number of classes (distinct labels) in dataset. (default: `labels.max()-labels.min()+1`)
             verbose (bool): Print to stdout after generating each batch. (default: False)
+            include_mfcc (bool): Whether or not to include mfcc in output. (default: True)
+            include_melsg (bool): Whether or not to include mel-spectrogram in output. (default: True)
         """
         self.n_frames = n_frames
         self.batch_size = batch_size
@@ -147,6 +150,8 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         self.stats = get_stats(data_dir, stats_filename)
         self.scale = scale
         self.index_df = get_index_df(self.data_dir, index_df_filename)
+        self.include_mfcc = include_mfcc
+        self.include_melsg = include_melsg
         # self.index_df, self.shapes_df, self.train_df, self.test_df = load_data(data_dir)
         # self.melsg_scaler, self.melsg_log_scaler, self.mfcc_scaler = get_scalers(
         #     self.index_df.loc[self.train_df.index], data_dir)
@@ -177,48 +182,44 @@ class AudioFeatureGenerator(keras.utils.Sequence):
 
     def __data_generation(self, list_file_ids_temp, batch_index):
         """Generates data containing batch_size samples"""
-        melsg_arr = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
-        mfcc_arr = np.empty((len(list_file_ids_temp), 20, self.n_frames, self.n_channels))
-        # X = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
+        x = {}
+        if self.include_melsg:
+            x['melsg'] = np.empty((len(list_file_ids_temp), 128, self.n_frames, self.n_channels))
+        if self.include_mfcc:
+            x['mfcc'] = np.empty((len(list_file_ids_temp), 20, self.n_frames, self.n_channels))
         y = np.empty((len(list_file_ids_temp), self.n_classes), dtype=int)  # one-hot encoded labels
         offsets = np.empty(len(list_file_ids_temp))
 
         for i, file_id in enumerate(list_file_ids_temp):
-            # melsg = get_melsg_array(self.index_df, file_id)
-            # melsg_lognorm = self.melsg_log_scaler.transform(np.log(melsg, out=np.zeros(melsg.shape), where=melsg > 0))
-
-            # mfcc = get_mfcc_array(self.index_df, file_id)
-            # mfcc = self.mfcc_scaler.transform(mfcc)
-
-            meldb = get_melsg_array(self.index_df, file_id)
-            mfcc = get_mfcc_array(self.index_df, file_id)
-
+            data_length = int(self.index_df.loc[file_id]['data_length'])
             # Pick a random window from the sound file
             np.random.seed(self.seed + i)
-            offset = int(np.random.uniform(0, mfcc.shape[1]))
-            mfcc_cropped = mfcc[:, offset:offset + self.n_frames]
-            #msg_lognorm_cropped = melsg_lognorm[:, offset:offset + self.n_frames]
-            meldb_cropped = meldb[:, offset:offset + self.n_frames]
-            for j in range(int(np.ceil(self.n_frames / mfcc.shape[1]))):
-                # mfcc_cropped = np.hstack([mfcc_cropped, mfcc])[:, :self.n_frames]
-                mfcc_cropped = np.concatenate([mfcc_cropped, mfcc], axis=1)[:, :self.n_frames]
-                # msg_lognorm_cropped = np.hstack[msg_lognorm_cropped, melsg_lognorm][:, :self.n_frames]
-                #msg_lognorm_cropped = np.concatenate([msg_lognorm_cropped, melsg_lognorm], axis=1)[:, :self.n_frames]
-                meldb_cropped = np.concatenate([meldb, meldb_cropped], axis=1)[:, :self.n_frames]
-
+            offset = int(np.random.uniform(0, data_length))
             offsets[i, ] = offset
-            #melsg_arr[i, ] = msg_lognorm_cropped.reshape((1, 128, self.n_frames, 1))
-            melsg_arr[i, ] = meldb_cropped.reshape((1, 128, self.n_frames, 1))
-            mfcc_arr[i, ] = mfcc_cropped.reshape((1, 20, self.n_frames, 1))
-            # X[i,] = msg_lognorm_cropped.reshape(1,128,self.n_frames,1)
-            y[i, ] = to_categorical(self.labels_by_id[file_id], num_classes=self.n_classes)
+            y[i,] = to_categorical(self.labels_by_id[file_id], num_classes=self.n_classes)
 
-#         print("Generated batch with input shapes ",(melsg_arr.shape, mfcc_arr.shape))
+            if self.include_melsg:
+                meldb = get_melsg_array(self.index_df, file_id)
+                meldb_cropped = meldb[:, offset:offset + self.n_frames]
+            if self.include_mfcc:
+                mfcc = get_mfcc_array(self.index_df, file_id)
+                mfcc_cropped = mfcc[:, offset:offset + self.n_frames]
+
+            for j in range(int(np.ceil(self.n_frames / data_length ))):
+                if self.include_melsg:
+                    meldb_cropped = np.concatenate([meldb_cropped, meldb], axis=1)[:, :self.n_frames]
+                if self.include_mfcc:
+                    mfcc_cropped = np.concatenate([mfcc_cropped, mfcc], axis=1)[:, :self.n_frames]
+
+            if self.include_melsg:
+                x['melsg'][i, ] = meldb_cropped.reshape((1, 128, self.n_frames, 1))
+            if self.include_mfcc:
+                x['mfcc'][i, ] = mfcc_cropped.reshape((1, 20, self.n_frames, 1))
+
         if self.verbose:
             print("Generated batch #%i/%i." % (batch_index+1, self.n_batches))
             sys.stdout.flush()
-        return {'melsg': melsg_arr,
-                'mfcc': mfcc_arr,
+        return {**x,
                 'id': list_file_ids_temp,
                 'offset': offsets,
                 }, y
