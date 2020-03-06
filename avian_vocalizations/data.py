@@ -55,7 +55,7 @@ def get_label_encoder(data_dir=None, index_filename=None):
     return LabelEncoder().fit(df['english_cname'])
 
 
-def scale_features(meldb, mfcc, stats_filename):
+def scale_features(melsg, mfcc, stats_filename):
     stats = get_stats()
     mfcc_mean = np.array(stats['mfcc_mean'])
     mfcc_std = np.array(stats['mfcc_std'])
@@ -63,14 +63,14 @@ def scale_features(meldb, mfcc, stats_filename):
     mfcc -= mfcc_mean.reshape(-1, 1)
     # print(mfcc.shape, mfcc_mean.shape, mfcc_std.shape)
     mfcc /= mfcc_std.reshape(-1, 1)
-    meldb_mean = np.array(stats['meldb_mean'])
-    meldb_std = np.array(stats['meldb_std'])
-    meldb -= meldb_mean.reshape(-1, 1)
-    meldb /= meldb_std.reshape(-1, 1)
+    melsg_mean = np.array(stats['melsg_mean'])
+    melsg_std = np.array(stats['melsg_std'])
+    melsg -= melsg_mean.reshape(-1, 1)
+    melsg /= melsg_std.reshape(-1, 1)
 
 
 def preprocess(file_path, sr=44100, fmin=500, fmax=15000, hop_length=256, n_fft=2048, scale=False,
-               include_meldb=True, include_mfcc=True):
+               include_melsg=True, include_mfcc=True):
     """Read mp3 file and compute audio features
     Args:
         file_path (str): path to mp3 file to load
@@ -81,7 +81,7 @@ def preprocess(file_path, sr=44100, fmin=500, fmax=15000, hop_length=256, n_fft=
         n_fft (int): length of the windowed signal after padding with zeros, passed to `librosa.feature.melspectrogram`
                      and `librosa.feature.mfcc`.
         scale (bool): Whether or not to scale data using dataset statistics. (default: False)
-        include_meldb (bool): Whether or not to include mel-spectrogram in output. (default: True)
+        include_melsg (bool): Whether or not to include mel-spectrogram in output. (default: True)
         include_mfcc (bool): Whether or not to include mfcc in output. (default: True)
     Returns:
         Mel-frequency spectrogram and MFCC arrays
@@ -101,7 +101,7 @@ def preprocess(file_path, sr=44100, fmin=500, fmax=15000, hop_length=256, n_fft=
         scale_features(meldb, mfcc)
 
     res = []
-    if include_meldb:
+    if include_melsg:
         res.append(meldb)
     if include_mfcc:
         res.append(mfcc)
@@ -191,28 +191,28 @@ class AudioFeatureGenerator(keras.utils.Sequence):
         offsets = np.empty(len(list_file_ids_temp))
 
         for i, file_id in enumerate(list_file_ids_temp):
-            data_length = int(self.index_df.loc[file_id]['data_length'])
+            data_length = int(self.index_df.loc[file_id]['feature_length'])
             # Pick a random window from the sound file
             np.random.seed(self.seed + i)
             offset = int(np.random.uniform(0, data_length))
             offsets[i, ] = offset
-            y[i,] = to_categorical(self.labels_by_id[file_id], num_classes=self.n_classes)
+            y[i, ] = to_categorical(self.labels_by_id[file_id], num_classes=self.n_classes)
 
             if self.include_melsg:
-                meldb = get_melsg_array(self.index_df, file_id)
-                meldb_cropped = meldb[:, offset:offset + self.n_frames]
+                melsg = get_melsg_array(self.index_df, file_id)
+                melsg_cropped = melsg[:, offset:offset + self.n_frames]
             if self.include_mfcc:
                 mfcc = get_mfcc_array(self.index_df, file_id)
                 mfcc_cropped = mfcc[:, offset:offset + self.n_frames]
 
-            for j in range(int(np.ceil(self.n_frames / data_length ))):
+            for j in range(int(np.ceil(self.n_frames / data_length))):
                 if self.include_melsg:
-                    meldb_cropped = np.concatenate([meldb_cropped, meldb], axis=1)[:, :self.n_frames]
+                    melsg_cropped = np.concatenate([melsg_cropped, melsg], axis=1)[:, :self.n_frames]
                 if self.include_mfcc:
                     mfcc_cropped = np.concatenate([mfcc_cropped, mfcc], axis=1)[:, :self.n_frames]
 
             if self.include_melsg:
-                x['melsg'][i, ] = meldb_cropped.reshape((1, 128, self.n_frames, 1))
+                x['melsg'][i, ] = melsg_cropped.reshape((1, 128, self.n_frames, 1))
             if self.include_mfcc:
                 x['mfcc'][i, ] = mfcc_cropped.reshape((1, 20, self.n_frames, 1))
 
