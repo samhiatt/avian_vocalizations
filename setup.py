@@ -37,7 +37,7 @@ setup(
     dependency_links = [
     ],
     install_requires = [ 
-        'tensorflow>=1.15.2,<2',
+        'tensorflow',
         'keras',
         'librosa',
         'numpy',
